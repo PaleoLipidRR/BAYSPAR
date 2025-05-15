@@ -48,8 +48,8 @@ figure(1), clf
 set(gca, 'fontsize', 14)
 set(gcf, 'color', 'w')
 worldmap('World')
-load coast
-plotm(lat, long)
+load coastlines.mat
+plotm(coastlat, coastlon)
 geoshow(tex_data.paleolat, tex_data.paleolon, 'DisplayType', 'point', 'marker', '+', 'linewidth', 4, 'markersize', 12, 'MarkerEdgeColor', 'r'), hold on
 % load the original input and plot the modern tex locations:
 load(['ModelOutput/Data_Input_SpatAg_', runname])
