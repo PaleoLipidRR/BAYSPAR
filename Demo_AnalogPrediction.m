@@ -34,7 +34,7 @@ search_tol=std(dats)*2; %set search tolerance to data timeseries std*2
 %select which model to use:
 
 %SST
-runname='subT';
+runname='SST';
 
 % Run the prediction:
 Output_Struct=bayspar_tex_analog(dats, prior_mean, prior_std, search_tol, runname,1000,1);
