@@ -38,7 +38,7 @@ this document cannot drift away from the code without the build going red.
 
 ## Register: everything that does not behave like MATLAB
 
-Nine entries. If you only read one part of this document, read this table.
+Ten entries. If you only read one part of this document, read this table.
 
 | ID | Status | What changes | Why | Decides |
 |---|---|---|---|---|
@@ -49,6 +49,7 @@ Nine entries. If you only read one part of this document, read this table.
 | [`GEN-03`](#gen-03) | DEVIATION | Explicit seeded RNG per call | MATLAB uses the global stream; results are not reproducible run to run | Ronnakrit |
 | [`BT-05`](#bt-05) | EXTENSION | `max_dist` and `min_num` are keyword arguments | Hard-coded in MATLAB at 500 km / 1, which stay the defaults | — |
 | [`BT-01`](#bt-01) | EXTENSION | Keyword arguments instead of `varargin` position | Same defaults; `n_draws` validated against the real ensemble length | — |
+| [`TXF-01`](#txf-01) | EXTENSION | Same, for the forward model | Keeps MATLAB's `(lat, lon, t)` order and its error messages | — |
 | [`STO-01`](#sto-01) | EXTENSION | `params_analog` is derived from the standard store by cell index | The two files are bit-identical (audited); storing one removes 97 MB | Jess |
 | [`TXF-05`](#txf-05) | EXTENSION | Forward model accepts `n_draws` thinning | MATLAB always uses all 20,000 draws, then subsamples 1000 — which stays the default | — |
 
@@ -733,4 +734,4 @@ vacuously.
 
 | Date | Change |
 |---|---|
-| 2026-09-11 | First version: 4 MATLAB files, 45 entries, 9 in the register. No Python written yet — every entry describes intended behaviour, and each will gain a source reference when the code lands. |
+| 2026-09-11 | First version: 4 MATLAB files, 45 entries, 10 in the register. No Python written yet — every entry describes intended behaviour, and each will gain a source reference when the code lands. |
