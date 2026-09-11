@@ -1,0 +1,105 @@
+
+==============================================================================
+A. Thinning index  --  MATLAB: ind_s = round(linspace(1, 20000, Nsamps))
+==============================================================================
+  Reported 1-based, as MATLAB prints them.
+  Nsamps=   10: first 5 [1, 2223, 4445, 6667, 8889]  last 3 [15556, 17778, 20000]  unique=10
+  Nsamps=  999: first 5 [1, 21, 41, 61, 81]  last 3 [19960, 19980, 20000]  unique=999
+  Nsamps= 1000: first 5 [1, 21, 41, 61, 81]  last 3 [19960, 19980, 20000]  unique=1000
+  Nsamps= 1001: first 5 [1, 21, 41, 61, 81]  last 3 [19960, 19980, 20000]  unique=1001
+  Nsamps=20000: first 5 [1, 2, 3, 4, 5]  last 3 [19998, 19999, 20000]  unique=20000
+
+==============================================================================
+B. Chordal distance  --  MATLAB: EarthChordDistances_2([lon lat], [lon2 lat2])
+==============================================================================
+  (   0.0000,   0.0000) -> (   0.0000,   1.0000)  =  111.318077888 km
+  (   0.0000,   0.0000) -> (   1.0000,   0.0000)  =  111.318077888 km
+  ( -17.6635,   9.1660) -> ( -17.5000,   9.5000)  =  41.291074146 km
+  ( 100.0000, -45.0000) -> (-100.0000,  45.0000)  =  12659.746604378 km
+  ( 180.0000,   0.0000) -> (-180.0000,   0.0000)  =  0.000000000 km
+
+==============================================================================
+C. Prior mean and grid cell, per demo series
+==============================================================================
+  MATLAB (inside bayspar_tex.m, after line 126 and line 140):
+      Output_Struct.PriorMean, Output_Struct.GridLoc
+
+  --- runname = 'SST' ---
+  castaneda2010      N= 115  site=(  34.0733,  31.6517)  mean TEX86=0.571296
+                     PriorMean=21.7174001174  from 22 obs within 500 km
+                     GridLoc=[[30, 40]]  (cells matched: 1)
+  lopes_santos2010   N= 193  site=( -17.6635,   9.1660)  mean TEX86=0.567828
+                     PriorMean=26.8674410752  from 56 obs within 500 km
+                     GridLoc=[[-10, 0]]  (cells matched: 1)
+  shevenell2011      N= 127  site=( -64.2080, -64.8527)  mean TEX86=0.325630
+                     PriorMean=0.0535030915  from 97 obs within 500 km
+                     GridLoc=[[-70, -60]]  (cells matched: 1)
+  --- runname = 'subT' ---
+  castaneda2010      N= 115  site=(  34.0733,  31.6517)  mean TEX86=0.571296
+                     PriorMean=18.5711564752  from 22 obs within 500 km
+                     GridLoc=[[30, 40]]  (cells matched: 1)
+  lopes_santos2010   N= 193  site=( -17.6635,   9.1660)  mean TEX86=0.567828
+                     PriorMean=19.1673884681  from 56 obs within 500 km
+                     GridLoc=[[-10, 0]]  (cells matched: 1)
+  shevenell2011      N= 127  site=( -64.2080, -64.8527)  mean TEX86=0.325630
+                     PriorMean=-0.4346589233  from 93 obs within 500 km
+                     GridLoc=[[-70, -60]]  (cells matched: 1)
+
+==============================================================================
+D. Analogue selection  --  Demo_AnalogPrediction.m, wilsonlake, runname='SST'
+==============================================================================
+  MATLAB: search_tol = std(dats)*2;  then bayspar_tex_analog(...);
+          Output_Struct.AnLocs
+
+  N=52  mean TEX86=0.7742307692  std(dats)=0.0877015025  search_tol=0.1754030050
+  cell-mean TEX86 range across the 80 calibration cells: 0.312907 to 0.839395
+  analogues selected: 24
+    cell   1  centroid [  110,   20]  mean TEX86 0.6732579238
+    cell   6  centroid [  110,    0]  mean TEX86 0.6849666667
+    cell  14  centroid [   10,    0]  mean TEX86 0.6331800000
+    cell  15  centroid [  -50,    0]  mean TEX86 0.6452335197
+    cell  17  centroid [   30,   20]  mean TEX86 0.8393947368
+    cell  18  centroid [  -30,    0]  mean TEX86 0.6166714286
+    cell  22  centroid [  -10,   40]  mean TEX86 0.6039548813
+    cell  29  centroid [  -50,  -20]  mean TEX86 0.6348600000
+    cell  30  centroid [   50,   20]  mean TEX86 0.7212437500
+    cell  35  centroid [   90,    0]  mean TEX86 0.7094764706
+    cell  37  centroid [  150,    0]  mean TEX86 0.7025125000
+    cell  46  centroid [   50,  -20]  mean TEX86 0.6945555556
+    cell  48  centroid [   70,   20]  mean TEX86 0.7430000000
+    cell  52  centroid [  130,    0]  mean TEX86 0.6666142857
+    cell  54  centroid [  170,    0]  mean TEX86 0.6986777778
+    cell  55  centroid [ -170,  -20]  mean TEX86 0.7100000000
+    cell  57  centroid [  -30,  -20]  mean TEX86 0.6573250000
+    cell  59  centroid [  -10,    0]  mean TEX86 0.6091250000
+    cell  63  centroid [  -90,   20]  mean TEX86 0.6838250000
+    cell  64  centroid [  -70,   20]  mean TEX86 0.7052500000
+    cell  69  centroid [  150,  -20]  mean TEX86 0.6554115692
+    cell  70  centroid [ -170,    0]  mean TEX86 0.6871000000
+    cell  78  centroid [  -30,   20]  mean TEX86 0.6419436713
+    cell  79  centroid [  110,  -20]  mean TEX86 0.6911000000
+
+==============================================================================
+E. Per-draw posterior, before noise  --  bayspar_tex.m lines 149-152
+==============================================================================
+  MATLAB: post_mean and post_sig for dats(1), draws 1..5 of the thinned set.
+  Demo_StandardPrediction.m as shipped: lopes_santos2010, prior_std=6, runname='subT'
+
+  dats(1)=0.6017568638  PriorMean=19.1673884681  prior_std=6.0
+    draw          alpha           beta           tau2      post_mean     post_sig
+       1   0.3269026132   0.0144984650   0.0016894716  18.9957842624 2.5632716642
+      21   0.3242461647   0.0146800466   0.0017702670  18.9528845464 2.5861909363
+      41   0.3067678183   0.0154473311   0.0019072184  19.1093308376 2.5574532133
+      61   0.3451906885   0.0139417990   0.0017690135  18.5569763711 2.6952836733
+      81   0.3573571093   0.0136329395   0.0017580790  18.1852227316 2.7369667635
+
+==============================================================================
+F. Percentile convention  --  MATLAB: prctile(x, [5 50 95])
+==============================================================================
+  MATLAB uses Hazen plotting positions (i-0.5)/n. NumPy's default does not.
+
+  np.percentile(1..10, [5,50,95], method='hazen'   ) = [1.0, 5.5, 10.0]  <- matches MATLAB
+  np.percentile(1..10, [5,50,95], method='linear'  ) = [1.45, 5.5, 9.55]
+  np.percentile(1..10, [5,50,95], method='midpoint') = [1.5, 5.5, 9.5]
+
+  MATLAB check:  prctile(1:10, [5 50 95])   % expect 1.0  5.5  10.0

@@ -9,6 +9,12 @@ Every factual claim about the MATLAB package in §3–§5 was verified against t
 `ModelOutput/` by the scripts in `audit/`; re-run them with `python audit/audit_modeloutput.py`
 and `python audit/bench_closed_form.py`.
 
+**The line-by-line translation record is [`PORTING.md`](PORTING.md)** — 45 numbered entries covering
+every line of the four MATLAB functions, with a register of the nine places the Python does not
+behave like MATLAB. That is the document to review the recode against; this one states what is being
+built and why. `audit/reference_trace.txt` holds the deterministic values to compare against a
+MATLAB session.
+
 ---
 
 ## 1. Goals and non-goals
@@ -20,14 +26,18 @@ and `python audit/bench_closed_form.py`.
    `bayspar_tex()` doing the same thing with the same arguments.
 2. **Numerical equivalence with the MATLAB reference**, demonstrated by golden-file tests rather than
    asserted (§11).
-3. **Predictable, modest resource use.** The closed-form prediction must not saturate every core on a
+3. **A reviewable recode.** Every translated line is accounted for in `PORTING.md` under a stable ID,
+   every intentional difference is in its register with a named decision-maker, and a CI check fails
+   if an ID there has no corresponding test. A reviewer can check the port without reading the Python,
+   and can object to a numbered decision rather than to the port as a whole.
+4. **Predictable, modest resource use.** The closed-form prediction must not saturate every core on a
    laptop. This is the direct motivation for the rewrite (§5).
-4. **A CmdStan setup and solving path equivalent to TEXAS's** (§9, §10), so that:
+5. **A CmdStan setup and solving path equivalent to TEXAS's** (§9, §10), so that:
    - someone who only wants BAYSPAR never has to install `texas-psm`; and
    - once CmdStan is installed for either package, the *same* installation serves both.
-5. **The ability to refit the calibration on new coretop data** (§10.3), which the MATLAB release does
+6. **The ability to refit the calibration on new coretop data** (§10.3), which the MATLAB release does
    not provide — it ships fitted posteriors only.
-6. **A clean migration path into `texas-psm`** once the TEXAS paper is out (§12).
+7. **A clean migration path into `texas-psm`** once the TEXAS paper is out (§12).
 
 ### Non-goals (v1)
 
@@ -261,7 +271,7 @@ BAYSPARpy/
 │   ├── results.py                   # Prediction container: ensemble, percentiles, metadata
 │   ├── modelparams/                 # <- ModelOutput/Output_SpatAg_*/
 │   │   ├── core.py                  # Draws: lazy load, thinning, cell lookup
-│   │   └── registry.py              # Zenodo registry + checksums (§8)
+│   │   └── registry.py              # store locations + SHA-256 checksums (§8)
 │   ├── observations/                # <- ModelOutput/obs*.mat, Data_Input_*.mat
 │   │   ├── seatemp.py               # prior-mean search
 │   │   └── coretops.py              # Data_Input -> tidy frame, analogue search
@@ -361,17 +371,22 @@ The parameter store is 145 MB of `.mat`. After dropping the redundant analogue f
 97 MB as float64, 44 MB as float32 (measured, compressed `.npz`; the float32 round-trip error on α is
 4.3 × 10⁻⁸ relative).
 
-**Decision: Zenodo download plus a small bundled default.**
+**Decision: no Zenodo deposit. Everything lives in the repository, with a small tier in the wheel.**
 
 | Tier | Contents | Size | Where |
 |---|---|---|---|
 | Bundled | Exactly the MATLAB 1000-draw thinning of α, β, τ² for SST and subT, float64, plus `Locs_Comp`, the 80-cell index, the coretop `Data_Input` tables, and the WOA prior-mean vectors | ~6 MB | in the wheel |
-| Downloaded | Full 20,000-draw store, float64, NetCDF | ~97 MB | Zenodo, cached under `BAYSPAR_CACHE_DIR` → `~/.baysparpy/cache` |
+| Full store | All 20,000 draws, float64, NetCDF | ~97 MB | in the repository, via Git LFS (`git lfs pull`), as TEXAS tracks its data |
 
-`pip install` + demo works offline with the default `n_draws=1000` — the bundled tier *is* the
-MATLAB default ensemble, so nothing about the standard result depends on the download. Asking for
-`n_draws > 1000`, or for a custom thinning, triggers a one-time download with an explicit message.
-Registry entries carry SHA-256 checksums and a DOI, following `TEXAS/utils/download.py`.
+The bundled tier *is* the MATLAB default ensemble, so `pip install` plus the demo works offline and
+nothing about the standard result depends on fetching anything. Asking for `n_draws > 1000`, or for a
+custom thinning, needs the full store and raises a message naming the `git lfs pull` (or the
+`baysparpy.download_params()` call, if tier 3 below ever exists).
+
+*Contingency, not built now:* if a PyPI release later makes a 97 MB checkout unacceptable and a
+network tier is needed, host it under a PaleoLipidRR-owned record the same way TEXAS does, with the
+same registry shape, SHA-256 checksums and `download_*()` API as `TEXAS/utils/download.py`. No
+third-party deposit is created in the meantime.
 
 Storage format: NetCDF via xarray, dimensions `(cell, draw)`, coordinates `lon`, `lat`, attributes
 recording provenance (source `.mat` filename, its SHA-256, conversion date, `baysparpy` version).
@@ -564,7 +579,18 @@ A benchmark test asserts the closed-form path stays within a factor of 2 of the 
 §5 and that it performs no BLAS call (checked with `threadpoolctl` — the thread pool must show zero
 usage during a prediction).
 
-### 11.5 Smoke and API
+### 11.5 The translation record
+
+`tests/test_port.py` holds one test per `PORTING.md` entry, named for its ID
+(`test_BT_09`, `test_BTA_05`, …), and `tests/test_porting_doc.py` asserts that every ID in the
+document has such a test and that every `DEVIATION` and `DEFECT` entry also appears in the
+document's register. The record cannot fall out of step with the code without the build going red.
+
+Until the golden files have been generated in a MATLAB session, every golden test is marked
+`xfail(strict=False)` with the reason "golden file not yet generated from MATLAB" — so the suite says
+what has and has not been checked against the reference, rather than passing vacuously.
+
+### 11.6 Smoke and API
 
 Mirroring TEXAS's suite: `test_imports.py`, `test_public_api_docs.py` (every public symbol has a
 docstring), `test_optional_deps.py` (core import works without cartopy/cmdstanpy), plus the CmdStan
@@ -594,11 +620,12 @@ installable standalone for people who only want TEX₈₆.
 ## 13. Milestones
 
 **Phase 0 — scaffold (≈1 day).** Repo, `pyproject.toml`, CI (lint + tests, three OSes), `CLAUDE.md`,
-licence and citation files, `tools/convert_modeloutput.py`, the NetCDF store, Zenodo deposit.
+licence and citation files, `tools/convert_modeloutput.py`, the NetCDF store tracked in Git LFS.
 
 **Phase 1 — the port (≈3 days).** `distance`, `modelparams`, `observations`, `bayspar_tex`,
 `bayspar_tex_analog`, `tex_forward`, `Prediction`, the modern API, plotting. Golden files generated
-from MATLAB and §11.1–11.3 green. **This is the deliverable that replaces the current workflow** and
+from MATLAB and §11.1–11.3 green. Each entry in `PORTING.md` gains its source reference and its test
+as the code lands, so the record and the package are finished together, not in sequence. **This is the deliverable that replaces the current workflow** and
 is worth cutting a `0.1.0` prototype tag at.
 
 **Phase 2 — toolchain (≈1 day).** `_cmdstan/` vendored, `doctor`, `install_cmdstan`, console scripts,
@@ -619,18 +646,26 @@ and write down the model, before any Stan is written.
 
 ## 14. Open decisions
 
+### Still open
+
 1. **PyPI name.** `bayspar`, or inherit `baysparpy` from Brewster? Needs Jess and Brewster. Nothing
    is published until then; the import name `baysparpy` is safe under either outcome.
-2. **Licence.** The MATLAB repo's licence carries over; confirm it permits redistributing the
-   parameter files, and confirm the Zenodo deposit's licence and authorship with Jess.
-3. **Default `n_draws`.** MATLAB uses 1000, `brews/baysparpy` 5000. This spec keeps 1000 (it is the
-   bundled tier, §8) — confirm that is what you want the default result to be.
-4. **TT14 model details for the refit** (§10.3): kernel family, whether α and β share a range
+2. **Licence.** The MATLAB repo's licence carries over; confirm with Jess that it permits
+   redistributing the parameter files under the new repository.
+3. **TT14 model details for the refit** (§10.3): kernel family, whether α and β share a range
    parameter, and the exact priors. Requires reading the paper; ideally confirmed with Jess, who has
    the original sampler.
-5. **Arctic exclusion.** The calibration excludes TEX₈₆ north of 70° N. Should the port *warn* when a
-   prediction site falls there? The MATLAB code does not.
-6. **Zenodo deposit ownership** — under PaleoLipidRR, or alongside the TEXAS deposit?
+4. **Two entries in the `PORTING.md` register are Jess's call**, not a maintainer's: `BTA-05` (should
+   the default pair τ² with the α, β of the same draw, against MATLAB's behaviour?) and `STO-01`
+   (storing one parameter set rather than two bit-identical ones).
+
+### Settled
+
+| | Decision |
+|---|---|
+| Default `n_draws` | **1000**, following Jess — not `brews/baysparpy`'s 5000. It is also the bundled tier (§8), so the default result needs no data fetch. |
+| Arctic warning | **None.** The calibration excludes coretops north of 70° N, but a *paleo* site above that latitude is a different situation, and the port will not second-guess it. MATLAB does not warn; neither will we. |
+| Data hosting | **No Zenodo deposit.** Bundled tier in the wheel, full store in the repository via Git LFS (§8). A hosted tier, if ever needed, goes under PaleoLipidRR with the same mechanism TEXAS uses. |
 
 ---
 
