@@ -106,3 +106,7 @@ Preds      		- Nd by 3 array, where Nd=length(dats), giving the 5/50/95 percenti
 NOTE:
 
 All necessary model outputs, as well as some sample TEX<sub>86</sub> series used by the demo scripts, are in the ModelOutput folder, and need not be touched.
+
+## Python port
+
+A Python recode is being specced in [`docs/BAYSPARpy/SPEC.md`](docs/BAYSPARpy/SPEC.md). It is planning material only — the MATLAB package above is unchanged.
