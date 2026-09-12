@@ -24,6 +24,10 @@ def test_prediction_makes_no_blas_call(lopes):
     the timing assertion below is what makes the constraint bite.
     """
     tex, lon, lat = lopes
+    # Warm the parameter store first: it is a 49 MB .mat read, and timing it here
+    # would measure I/O rather than the solve. (This bit once: the assertion below
+    # failed only when this module happened to run before any other store user.)
+    bp.bayspar_tex(tex, lon, lat, 6.0, "subT", n_draws=10, seed=0)
     with threadpoolctl.threadpool_limits(limits=1):
         t0 = time.perf_counter()
         out = bp.bayspar_tex(tex, lon, lat, 6.0, "subT", n_draws=1000, seed=0)
