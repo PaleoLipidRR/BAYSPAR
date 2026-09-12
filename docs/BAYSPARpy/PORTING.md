@@ -8,6 +8,11 @@ Companion documents: [`SPEC.md`](SPEC.md) (what is being built and why),
 [`audit/reference_trace.txt`](audit/reference_trace.txt) (deterministic values to compare against
 MATLAB).
 
+**The code these entries describe is in [`../../BAYSPARpy/`](../../BAYSPARpy/)**, developed in this
+repository so its tests can read `ModelOutput/` directly, and to be split out to
+`PaleoLipidRR/BAYSPARpy` once the port is validated. Run it with
+`cd BAYSPARpy && PYTHONPATH=src python -m pytest`.
+
 ---
 
 ## How to review this
@@ -483,11 +488,16 @@ holds `draw = (k−1) mod M`. For `n_an > 1` those are different draws.
 regression line at each flat position is a real posterior sample. Only its residual variance comes
 from somewhere else in the chain.
 
-**Expected impact: small.** The draws are exchangeable within the chain, so the pooled ensemble
-contains the same α, β and τ² values, merely re-paired; if τ² is close to independent of α and β in
-the posterior, the predictive distribution is almost unchanged. But it does break the joint
-posterior, and it is the exact constraint TEXAS's inverse model states in capitals ("ALL PARAMETERS
-MUST USE THE SAME DRAW INDEX m").
+**Measured impact: none detectable.** On the Wilson Lake demo at 5000 draws across its 24 analogue
+cells, the mean absolute difference between the two pairings is 0.024 / 0.011 / 0.033 °C for the
+5th / 50th / 95th percentiles — against 0.027 / 0.012 / 0.034 °C between two runs of the *same*
+pairing at different seeds. The difference is Monte-Carlo noise. That is what the exchangeability
+argument predicts: the pooled ensemble holds the same α, β and τ² values, merely re-paired, and τ²
+is close to independent of α and β in this posterior.
+
+It still breaks the joint posterior, and it is the exact constraint TEXAS's inverse model states in
+capitals ("ALL PARAMETERS MUST USE THE SAME DRAW INDEX m"), so the default pairs correctly. The point
+of measuring was to be able to say the fix costs nothing rather than to assume it.
 
 ```python
 # modern: one (n_an, M) block per parameter, flattened identically -> draw index preserved
@@ -697,9 +707,13 @@ sharing one grid.
 <a id="sto-04"></a>
 ### STO-04 · EQUIV · `Data_Input` → a tidy table
 
-The nested 35 × 80 cell arrays become one DataFrame with columns
-`cell_index, cell_lon, cell_lat, site_lon, site_lat, tex86, target_t, target_t_sd`, one row per
-observation (903 for SST, 906 for subT). The 35-element first axis is the **site slot within a
+The nested 35 × 80 cell arrays become one flat table with columns
+`cell_index, tex86, target_t, target_t_sd`, one row per observation (903 for SST, 906 for subT).
+
+**Found while testing this:** seven of the 903 SST observations carry a target error standard
+deviation of *exactly zero* (none of the subT ones do). An errors-in-variables likelihood divides by
+that quantity, so the Stan refit (SPEC §10.3) has to floor or special-case them; the test pins the
+count so the fix is driven by the data rather than by a crash three phases from now. The 35-element first axis is the **site slot within a
 cell**, not a time or an ensemble member — see SPEC §3.3. This table is the input format for the
 refit (SPEC §10.3), so "refit the original" and "refit with my coretops" become the same call.
 
@@ -713,20 +727,20 @@ that comparison scripts can load one file for both packages.
 
 ## What the tests actually assert
 
-| Test | Covers | Kind |
-|---|---|---|
-| `test_port.py::test_<ID>` | one entry above | unit |
-| `test_golden.py` | the deterministic quantities of `reference_trace.txt`, against values generated in MATLAB | golden |
-| `test_distributional.py` | 5/50/95 from 20,000-draw runs, Python vs MATLAB, within 3 × the percentile's Monte-Carlo SE | statistical |
-| `test_vs_baysparpy.py` | same, against `brews/baysparpy` in the same environment | cross-impl |
-| `test_matlab_mode.py` | `mode="matlab"` reproduces `BTA-05` and `BTA-08` exactly | regression |
-| `test_no_blas.py` | a prediction makes no BLAS call (`threadpoolctl`) | performance |
-| `test_porting_doc.py` | every ID here has a test; every DEVIATION and DEFECT is in the register | meta |
+| Test | Covers | Kind | Status |
+|---|---|---|---|
+| `test_port.py::test_<ID>` | one entry above, 45 of them | unit | 43 pass, 2 skip (`STO-02`, `STO-05` are Phase 0) |
+| `test_reference_trace.py` | the package reproduces every value in `audit/reference_trace.txt` | golden-ish | passing |
+| `test_porting_doc.py` | every ID here has a test and every test an ID; every DEVIATION and DEFECT is in the register; IDs have no gaps | meta | passing |
+| `test_no_blas.py` | a prediction makes no BLAS call and allocates no N × N intermediate | performance | passing |
+| `test_golden.py` | the same quantities against values generated **in MATLAB** | golden | **not written** — needs one MATLAB session |
+| `test_distributional.py` | 5/50/95 from 20,000-draw runs, Python vs MATLAB, within 3 × the percentile's Monte-Carlo SE | statistical | **not written** — same dependency |
+| `test_vs_baysparpy.py` | same, against `brews/baysparpy` in the same environment | cross-impl | not written |
 
-The golden files need one MATLAB session to generate. Until that has been run, every golden test is
-marked `xfail(strict=False)` with the reason "golden file not yet generated from MATLAB" — so the
-suite is honest about what has and has not been checked against the reference, rather than passing
-vacuously.
+`test_reference_trace.py` checks the package against values this port itself produced, so it catches
+drift but cannot catch a shared misreading of the MATLAB. Only `test_golden.py` can, and it needs a
+MATLAB session — until then the record says so rather than implying the port is validated against
+the reference.
 
 ---
 
@@ -734,4 +748,5 @@ vacuously.
 
 | Date | Change |
 |---|---|
-| 2026-09-11 | First version: 4 MATLAB files, 45 entries, 10 in the register. No Python written yet — every entry describes intended behaviour, and each will gain a source reference when the code lands. |
+| 2026-09-11 | First version: 4 MATLAB files, 45 entries, 10 in the register. No Python written yet — every entry describes intended behaviour. |
+| 2026-09-12 | The port landed in `BAYSPARpy/`; 43 of 45 entries now have a passing test and 2 are skipped as Phase 0 work. Two entries changed as a result: `BTA-05` gains the measured size of the τ² mis-pairing (Monte-Carlo noise, on the Wilson Lake demo), and `STO-04` records seven SST coretops whose target error SD is exactly zero, which the refit will have to handle. |
