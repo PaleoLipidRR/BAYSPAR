@@ -630,9 +630,12 @@ licence and citation files, `tools/convert_modeloutput.py`, the NetCDF store tra
 `distance`, `stores`, `bayspar_tex`, `bayspar_tex_analog`, `tex_forward`, `Prediction`, the modern
 API and the error types are written, with 65 passing tests: one per `PORTING.md` entry, the
 reference-trace check, the record/code meta-test, and the no-BLAS check.
+The port is also **validated against the reference executing**: `audit/verify_original.m` runs the
+three MATLAB functions unmodified and `tests/test_vs_original.py` compares — 83 tests pass in all.
+GNU Octave 8.4 runs the `.m` sources, so this needed no MATLAB licence (see PORTING.md for the
+caveat that follows from that, and for the line of `bayspar_tex.m` that will not run under Octave).
 Still outstanding in this phase: plotting (`predictplot`, `analogmap`, `densityplot`), the demo
-notebooks, and the three test files that need a MATLAB session or `brews/baysparpy` installed
-(§11.1–11.3). The package currently reads `ModelOutput/` directly, which is why it lives in this
+notebooks, and the comparison against `brews/baysparpy` (§11.3). The package currently reads `ModelOutput/` directly, which is why it lives in this
 repository for now; Phase 0's conversion is what frees it to move. **This is the deliverable that replaces the current workflow** and
 is worth cutting a `0.1.0` prototype tag at.
 

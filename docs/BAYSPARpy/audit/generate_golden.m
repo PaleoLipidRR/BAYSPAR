@@ -1,12 +1,24 @@
 function generate_golden()
 % GENERATE_GOLDEN  Produce the MATLAB reference values the Python port is tested against.
 %
-% Run from the BAYSPAR repository root, with the Statistics Toolbox available
-% (for prctile):
+% Run from the BAYSPAR repository root. The '>>' below is the MATLAB prompt --
+% these are typed inside MATLAB, not in a shell.
 %
 %     >> cd /path/to/BAYSPAR
 %     >> addpath('docs/BAYSPARpy/audit')
 %     >> generate_golden
+%
+% Or, entirely from a shell, in the repository root:
+%
+%     matlab -batch "addpath('docs/BAYSPARpy/audit'); generate_golden"
+%
+% GNU Octave works too, and needs no MATLAB licence -- this script was developed
+% against Octave 8.4 with the statistics package (apt install octave
+% octave-statistics), which is where prctile comes from:
+%
+%     octave --no-gui --quiet --eval "pkg load statistics; addpath('docs/BAYSPARpy/audit'); generate_golden"
+%
+% MATLAB needs the Statistics Toolbox for the same function.
 %
 % Writes docs/BAYSPARpy/audit/golden_matlab.mat and prints the same values in
 % the layout of reference_trace.txt, so the two can be diffed by eye.
@@ -144,7 +156,14 @@ fprintf('  prctile(1:10, [5 50 95]) = [%s]   %% Python: method="hazen"\n', ...
 
 %% Save --------------------------------------------------------------------
 out = fullfile('docs', 'BAYSPARpy', 'audit', 'golden_matlab.mat');
-save(out, '-struct', 'G');
+% -v7 matters: Octave's default save format is its own ASCII text, which
+% scipy.io.loadmat cannot read (it reports "Unknown mat file type"). Octave wants
+% the option before the filename, MATLAB after it.
+if exist('OCTAVE_VERSION', 'builtin')
+    save('-v7', out, '-struct', 'G');
+else
+    save(out, '-struct', 'G', '-v7');
+end
 fprintf('\nwrote %s\n', out);
 fprintf('Now run, from the repository root:\n');
 fprintf('    cd BAYSPARpy && python -m pytest tests/test_golden.py -v\n\n');

@@ -1,7 +1,7 @@
 # Handoff
 
 Where the BAYSPARpy work stands, and what to do next on your own machine.
-Last updated 2026-09-12, at commit `9f2ab49` plus the golden-test scaffolding.
+Last updated 2026-09-12, after validating the port against the original MATLAB code.
 
 ---
 
@@ -15,7 +15,7 @@ git checkout claude/cool-hopper-11jy6s     # or master, if this has been merged
 cd BAYSPARpy
 python -m venv .venv && source .venv/bin/activate     # or conda, as you prefer
 pip install -e ".[dev]"
-python -m pytest                                       # expect 65 passed, 13 skipped
+python -m pytest                                       # expect 83 passed, 2 skipped
 ```
 
 Python ≥ 3.10, numpy and scipy; `[dev]` adds pytest and threadpoolctl. The package finds the
@@ -35,40 +35,60 @@ out.preds[:3]       # 5/50/95, degrees C
 
 ---
 
-## The one job that needs your machine: golden files
+## Validation against the reference: done, with one caveat
 
-Everything currently passing checks the port against itself or against intermediates the port
-produced. **Nothing has yet been compared against MATLAB.** A shared misreading of the reference
-would sail through. Closing that is one MATLAB session:
+This was the open job at handoff. It is closed — **the port is now checked against the original
+MATLAB code actually executing**, not only against itself.
 
-```matlab
->> cd /path/to/BAYSPAR
->> addpath('docs/BAYSPARpy/audit')
->> generate_golden
-```
-
-It writes `docs/BAYSPARpy/audit/golden_matlab.mat` and prints the same values in the layout of
-`audit/reference_trace.txt`, so you can eyeball the two side by side before trusting either. Then:
+GNU Octave 8.4 (with the `statistics` package) runs the `.m` sources, so the reference values were
+generated without a MATLAB licence:
 
 ```bash
-cd BAYSPARpy && python -m pytest tests/test_golden.py -v
+cd ~/BAYSPAR
+octave --no-gui --quiet --eval "pkg load statistics; addpath('docs/BAYSPARpy/audit'); generate_golden"
+octave --no-gui --quiet --eval "pkg load statistics; addpath('docs/BAYSPARpy/audit'); verify_original"
+cd BAYSPARpy && python -m pytest        # 83 passed, 2 skipped
 ```
 
-Those 11 tests currently skip with the reason "golden file not yet generated from MATLAB". Once the
-`.mat` exists they run: thinning indices, chordal distances, prior means and their observation
-counts, grid-cell lookup, the Wilson Lake analogue set, per-draw `post_mean`/`post_sig`, and the
-`prctile` convention — all to 1e-10 or exact. Commit the `.mat` (it is a few KB) so CI can run them
-too.
+Under MATLAB, the same two scripts, from the repository root:
 
-`generate_golden.m` needs base MATLAB plus the Statistics Toolbox (for `prctile`). It has not been
-executed — it was written from the source, not tested — so if it throws, the fix is likely a
-one-liner and the values it computes are all mirrored in `audit/reference_trace.py` if you would
-rather cross-check by hand.
+```bash
+matlab -batch "addpath('docs/BAYSPARpy/audit'); generate_golden"
+matlab -batch "addpath('docs/BAYSPARpy/audit'); verify_original"
+```
 
-**If a golden test fails**, the failing quantity localises the problem to a single `PORTING.md`
-entry — that is what the ID scheme is for. Quote the ID in the issue.
+(The `>>` in an earlier draft of this note was the MATLAB prompt — those lines are typed *inside*
+MATLAB, not in a shell. Sorry for the confusion. Both forms are now in each script's header.)
 
----
+Two reference files are committed, so the tests run anywhere:
+
+| File | Made by | Feeds |
+|---|---|---|
+| `audit/golden_matlab.mat` | `generate_golden.m` — recomputes the intermediates inline | `tests/test_golden.py`, 11 tests |
+| `audit/original_matlab.mat` | `verify_original.m` — calls `bayspar_tex.m`, `bayspar_tex_analog.m` and `TEX_forward.m` unmodified | `tests/test_vs_original.py`, 7 tests |
+
+The second matters more: the first checks the arithmetic against expressions I transcribed, so it
+could not catch a misreading of the functions; the second runs the functions themselves. It confirms
+the prior mean and grid cell exactly, the analogue set exactly, and the percentiles distributionally
+(one reference run against the mean of 25 seeded Python runs, judged at 5σ per cell with the
+family-wise rate in mind).
+
+**The sharpest result:** `np.percentile(matlab_ensemble, [5, 50, 95], method="hazen")` returns
+MATLAB's own saved `Preds` **exactly — all 579 values, difference 0.0**, where NumPy's default
+method does not. `PORTING.md` BT-11 is now proven on real data rather than on `1:10`.
+
+**The caveat: this was Octave, not MATLAB.** Octave is a re-implementation; its `prctile` comes from
+the statistics package and its `sort` and `randn` are its own. Almost everything checked is plain
+arithmetic where the two agree, and the exact `prctile` reproduction above is strong evidence for
+the one convention that could plausibly differ — but a run under MATLAB proper would settle it. If
+you have a licence handy, re-run the two commands above; the committed `.mat` files will be
+overwritten and the same 18 tests will either still pass or tell you precisely which quantity moved.
+
+**Found while doing this, in the reference rather than the port:** `bayspar_tex.m` line 66 is
+`if runname=="SST"`. MATLAB reads `"SST"` as a string and compares it whole; Octave reads it as a
+char array and compares elementwise, so a four-character runname (`'subT'`) raises *nonconformant
+arguments*. The consequence is only that `verify_original.m` exercises the standard-mode path as
+`'SST'` under Octave. `bayspar_tex_analog.m` and `TEX_forward.m` run either way.
 
 ## What is done
 
@@ -93,7 +113,8 @@ Two findings the code produced that the documents could not:
 
 In the order I would do it:
 
-1. **Golden files** (above). Everything else is less valuable until the port is validated.
+1. ~~Golden files~~ — done, see above. Optionally re-run under MATLAB proper to remove the Octave
+   caveat.
 2. **`test_vs_baysparpy.py`** — `pip install baysparpy` and compare percentiles. Needs both packages
    in one environment, which is why the import name is `baysparpy` and not `bayspar`.
 3. **Plotting** — `predictplot`, `analogmap`, `densityplot`, matching the two MATLAB demo figures.
