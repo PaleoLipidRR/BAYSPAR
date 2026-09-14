@@ -8,6 +8,11 @@ Companion documents: [`SPEC.md`](SPEC.md) (what is being built and why),
 [`audit/reference_trace.txt`](audit/reference_trace.txt) (deterministic values to compare against
 MATLAB).
 
+**The code these entries describe is in [`../../BAYSPARpy/`](../../BAYSPARpy/)**, developed in this
+repository so its tests can read `ModelOutput/` directly, and to be split out to
+`PaleoLipidRR/BAYSPARpy` once the port is validated. Run it with
+`cd BAYSPARpy && PYTHONPATH=src python -m pytest`.
+
 ---
 
 ## How to review this
@@ -235,7 +240,10 @@ process.
 if runname=="SST" ... elseif runname=="subT" ...      % lines 66-70
 ```
 An unrecognised `runname` falls through both branches in MATLAB, leaving `locs_st_obs` undefined
-and failing later with an unrelated message. Python validates against `{"SST", "subT"}` up front and
+and failing later with an unrelated message. (This line is also why `bayspar_tex.m` will not run
+under Octave for `'subT'`: MATLAB compares the double-quoted `"SST"` as a whole string, Octave as a
+char array elementwise, so a four-character runname raises *nonconformant arguments*. A property of
+the reference, not of the port, but it limits what can be verified without a MATLAB licence.) Python validates against `{"SST", "subT"}` up front and
 raises naming both. Lower-case `"sst"`/`"subt"` are accepted as aliases, for compatibility with
 `brews/baysparpy`'s `temptype` argument.
 
@@ -393,6 +401,11 @@ at the extremes; NumPy's default (type 7) does not match and would bias the 5th 
 middle. `reference_trace.txt` §F shows the three candidate methods against
 `prctile(1:10, [5 50 95])` → `1.0, 5.5, 10.0`.
 
+**Confirmed on real data:** running `np.percentile(..., method="hazen")` over the ensemble
+`bayspar_tex.m` itself produced returns that run's own saved `Preds` exactly — all 579 values,
+difference 0.0 — and NumPy's default does not
+(`tests/test_vs_original.py::test_prctile_convention_on_the_reference_ensemble`).
+
 The inner `sort(Preds,2)` is a no-op — `prctile` sorts internally — and is dropped.
 
 <a id="bt-12"></a>
@@ -483,11 +496,16 @@ holds `draw = (k−1) mod M`. For `n_an > 1` those are different draws.
 regression line at each flat position is a real posterior sample. Only its residual variance comes
 from somewhere else in the chain.
 
-**Expected impact: small.** The draws are exchangeable within the chain, so the pooled ensemble
-contains the same α, β and τ² values, merely re-paired; if τ² is close to independent of α and β in
-the posterior, the predictive distribution is almost unchanged. But it does break the joint
-posterior, and it is the exact constraint TEXAS's inverse model states in capitals ("ALL PARAMETERS
-MUST USE THE SAME DRAW INDEX m").
+**Measured impact: none detectable.** On the Wilson Lake demo at 5000 draws across its 24 analogue
+cells, the mean absolute difference between the two pairings is 0.024 / 0.011 / 0.033 °C for the
+5th / 50th / 95th percentiles — against 0.027 / 0.012 / 0.034 °C between two runs of the *same*
+pairing at different seeds. The difference is Monte-Carlo noise. That is what the exchangeability
+argument predicts: the pooled ensemble holds the same α, β and τ² values, merely re-paired, and τ²
+is close to independent of α and β in this posterior.
+
+It still breaks the joint posterior, and it is the exact constraint TEXAS's inverse model states in
+capitals ("ALL PARAMETERS MUST USE THE SAME DRAW INDEX m"), so the default pairs correctly. The point
+of measuring was to be able to say the fix costs nothing rather than to assume it.
 
 ```python
 # modern: one (n_an, M) block per parameter, flattened identically -> draw index preserved
@@ -697,9 +715,13 @@ sharing one grid.
 <a id="sto-04"></a>
 ### STO-04 · EQUIV · `Data_Input` → a tidy table
 
-The nested 35 × 80 cell arrays become one DataFrame with columns
-`cell_index, cell_lon, cell_lat, site_lon, site_lat, tex86, target_t, target_t_sd`, one row per
-observation (903 for SST, 906 for subT). The 35-element first axis is the **site slot within a
+The nested 35 × 80 cell arrays become one flat table with columns
+`cell_index, tex86, target_t, target_t_sd`, one row per observation (903 for SST, 906 for subT).
+
+**Found while testing this:** seven of the 903 SST observations carry a target error standard
+deviation of *exactly zero* (none of the subT ones do). An errors-in-variables likelihood divides by
+that quantity, so the Stan refit (SPEC §10.3) has to floor or special-case them; the test pins the
+count so the fix is driven by the data rather than by a crash three phases from now. The 35-element first axis is the **site slot within a
 cell**, not a time or an ensemble member — see SPEC §3.3. This table is the input format for the
 refit (SPEC §10.3), so "refit the original" and "refit with my coretops" become the same call.
 
@@ -713,20 +735,28 @@ that comparison scripts can load one file for both packages.
 
 ## What the tests actually assert
 
-| Test | Covers | Kind |
-|---|---|---|
-| `test_port.py::test_<ID>` | one entry above | unit |
-| `test_golden.py` | the deterministic quantities of `reference_trace.txt`, against values generated in MATLAB | golden |
-| `test_distributional.py` | 5/50/95 from 20,000-draw runs, Python vs MATLAB, within 3 × the percentile's Monte-Carlo SE | statistical |
-| `test_vs_baysparpy.py` | same, against `brews/baysparpy` in the same environment | cross-impl |
-| `test_matlab_mode.py` | `mode="matlab"` reproduces `BTA-05` and `BTA-08` exactly | regression |
-| `test_no_blas.py` | a prediction makes no BLAS call (`threadpoolctl`) | performance |
-| `test_porting_doc.py` | every ID here has a test; every DEVIATION and DEFECT is in the register | meta |
+| Test | Covers | Kind | Status |
+|---|---|---|---|
+| `test_port.py::test_<ID>` | one entry above, 45 of them | unit | 43 pass, 2 skip (`STO-02`, `STO-05` are Phase 0) |
+| `test_reference_trace.py` | the package reproduces every value in `audit/reference_trace.txt` | golden-ish | passing |
+| `test_porting_doc.py` | every ID here has a test and every test an ID; every DEVIATION and DEFECT is in the register; IDs have no gaps | meta | passing |
+| `test_no_blas.py` | a prediction makes no BLAS call and allocates no N × N intermediate | performance | passing |
+| `test_golden.py` | the same quantities against `audit/golden_matlab.mat`, generated by running `generate_golden.m` | golden | 11 passing |
+| `test_vs_original.py` | the **original functions executing**: `bayspar_tex.m`, `bayspar_tex_analog.m`, `TEX_forward.m` run unmodified, their output saved to `audit/original_matlab.mat` | golden | 7 passing |
+| `test_vs_baysparpy.py` | percentiles against `brews/baysparpy` in the same environment | cross-impl | not written |
 
-The golden files need one MATLAB session to generate. Until that has been run, every golden test is
-marked `xfail(strict=False)` with the reason "golden file not yet generated from MATLAB" — so the
-suite is honest about what has and has not been checked against the reference, rather than passing
-vacuously.
+`test_reference_trace.py` checks the package against values this port itself produced: it catches
+drift, not a shared misreading. `test_golden.py` recomputes the intermediates in the MATLAB language
+but still from expressions transcribed by hand. **`test_vs_original.py` is the one that closes the
+loop** — it calls the reference functions and compares: prior mean and grid cell exactly, the
+analogue set exactly, the percentiles distributionally (one reference run against the mean of 25
+seeded Python runs, at 5σ per cell), and `prctile` exactly, over the reference's own ensemble.
+
+Both `.mat` files were generated with **GNU Octave 8.4**, not MATLAB. Octave is a re-implementation:
+its `prctile` comes from the statistics package, its `sort` and `randn` are its own. Nearly all of
+what is checked is plain arithmetic where they agree, and the exact `prctile` reproduction is strong
+evidence for the one convention that could plausibly differ — but re-running the two scripts under
+MATLAB would settle it, and is a five-minute job for anyone with a licence.
 
 ---
 
@@ -734,4 +764,6 @@ vacuously.
 
 | Date | Change |
 |---|---|
-| 2026-09-11 | First version: 4 MATLAB files, 45 entries, 10 in the register. No Python written yet — every entry describes intended behaviour, and each will gain a source reference when the code lands. |
+| 2026-09-11 | First version: 4 MATLAB files, 45 entries, 10 in the register. No Python written yet — every entry describes intended behaviour. |
+| 2026-09-12 | Validated against the original functions executing (Octave 8.4): 18 golden tests, 83 passing overall. `BT-11` gains the exact reproduction of `prctile` over the reference's own ensemble; `BT-03` records why `bayspar_tex.m` will not run under Octave for `'subT'`. |
+| 2026-09-12 | The port landed in `BAYSPARpy/`; 43 of 45 entries now have a passing test and 2 are skipped as Phase 0 work. Two entries changed as a result: `BTA-05` gains the measured size of the τ² mis-pairing (Monte-Carlo noise, on the Wilson Lake demo), and `STO-04` records seven SST coretops whose target error SD is exactly zero, which the refit will have to handle. |

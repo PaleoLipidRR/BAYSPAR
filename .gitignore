@@ -1,3 +1,11 @@
 .DS_Store
 ModelOutput/.DS_Store
 extras
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+.venv/

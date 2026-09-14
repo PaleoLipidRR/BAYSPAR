@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bayspar"
+version = "0.1.0.dev0"
+description = "A Bayesian, spatially-varying calibration model for the TEX86 proxy"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Ronnakrit Rattanasriampaipong" }]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+]
+# The import package is `baysparpy`, not `bayspar`: brews/baysparpy already
+# imports as `bayspar`, and the validation suite installs both. See SPEC.md §2.
+dependencies = ["numpy>=1.23", "scipy>=1.9"]
+
+[project.optional-dependencies]
+dev = ["pytest", "threadpoolctl"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["baysparpy*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

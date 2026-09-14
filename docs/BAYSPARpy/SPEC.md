@@ -508,6 +508,10 @@ for cell c, site j in c, observation k:
     Sigma(d) = sigma^2 * exp(-d / phi),  d = chordal distance between centroids
 ```
 
+- **Seven of the 903 SST coretops carry a target error standard deviation of exactly zero**
+  (none of the subT ones do; found while testing the port, pinned by `test_STO_04`). The
+  errors-in-variables term divides by that, so the model must floor it, drop those observations, or
+  treat their targets as known exactly — a decision to make explicitly rather than at a crash.
 - Priors on `mu_alpha, mu_beta, sigma_alpha, sigma_beta, phi, tau` to be taken from TT14 §3 —
   **to be confirmed against the paper before implementation**; the kernel family (exponential vs
   Matérn) and whether α and β share one range parameter are the two specific points to check.
@@ -622,10 +626,17 @@ installable standalone for people who only want TEX₈₆.
 **Phase 0 — scaffold (≈1 day).** Repo, `pyproject.toml`, CI (lint + tests, three OSes), `CLAUDE.md`,
 licence and citation files, `tools/convert_modeloutput.py`, the NetCDF store tracked in Git LFS.
 
-**Phase 1 — the port (≈3 days).** `distance`, `modelparams`, `observations`, `bayspar_tex`,
-`bayspar_tex_analog`, `tex_forward`, `Prediction`, the modern API, plotting. Golden files generated
-from MATLAB and §11.1–11.3 green. Each entry in `PORTING.md` gains its source reference and its test
-as the code lands, so the record and the package are finished together, not in sequence. **This is the deliverable that replaces the current workflow** and
+**Phase 1 — the port (≈3 days).** *Substantially done — the package is in `BAYSPARpy/`.*
+`distance`, `stores`, `bayspar_tex`, `bayspar_tex_analog`, `tex_forward`, `Prediction`, the modern
+API and the error types are written, with 65 passing tests: one per `PORTING.md` entry, the
+reference-trace check, the record/code meta-test, and the no-BLAS check.
+The port is also **validated against the reference executing**: `audit/verify_original.m` runs the
+three MATLAB functions unmodified and `tests/test_vs_original.py` compares — 83 tests pass in all.
+GNU Octave 8.4 runs the `.m` sources, so this needed no MATLAB licence (see PORTING.md for the
+caveat that follows from that, and for the line of `bayspar_tex.m` that will not run under Octave).
+Still outstanding in this phase: plotting (`predictplot`, `analogmap`, `densityplot`), the demo
+notebooks, and the comparison against `brews/baysparpy` (§11.3). The package currently reads `ModelOutput/` directly, which is why it lives in this
+repository for now; Phase 0's conversion is what frees it to move. **This is the deliverable that replaces the current workflow** and
 is worth cutting a `0.1.0` prototype tag at.
 
 **Phase 2 — toolchain (≈1 day).** `_cmdstan/` vendored, `doctor`, `install_cmdstan`, console scripts,
