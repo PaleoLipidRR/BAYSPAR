@@ -18,7 +18,10 @@ classifiers = [
 dependencies = ["numpy>=1.23", "scipy>=1.9"]
 
 [project.optional-dependencies]
-dev = ["pytest", "threadpoolctl"]
+dev = ["pytest", "threadpoolctl", "matplotlib", "jupyter", "nbformat", "nbclient"]
+# notebooks/compare_implementations.ipynb runs against brews/baysparpy when it is
+# present and says so when it is not. Kept out of `dev` because it pulls cartopy.
+compare = ["baysparpy>=0.0.2"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
