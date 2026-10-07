@@ -80,11 +80,18 @@ plus a Cholesky once per draw — and once per draw *per analogue location*. Tha
 wall-clock and the all-cores behaviour come from.
 
 ```bash
+uv sync                              # .venv with the package, dev tools and brews/baysparpy
+uv run jupyter lab notebooks/compare_implementations.ipynb
+```
+
+or with pip:
+
+```bash
 pip install -e ".[dev,compare]"      # `compare` pulls brews/baysparpy (and cartopy)
 jupyter lab notebooks/compare_implementations.ipynb
 ```
 
-The notebook runs without it, and reports that it is missing rather than failing.
+The notebook runs without brews/baysparpy, and reports that it is missing rather than failing.
 
 ## Reviewing it
 

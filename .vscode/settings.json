@@ -1,0 +1,6 @@
+{
+    // uv sync puts the environment in BAYSPARpy/.venv, one level below the workspace root,
+    // where VS Code does not look on its own.
+    "python.defaultInterpreterPath": "${workspaceFolder}/BAYSPARpy/.venv/bin/python",
+    "jupyter.notebookFileRoot": "${fileDirname}"
+}

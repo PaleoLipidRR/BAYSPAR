@@ -23,6 +23,12 @@ dev = ["pytest", "threadpoolctl", "matplotlib", "jupyter", "nbformat", "nbclient
 # present and says so when it is not. Kept out of `dev` because it pulls cartopy.
 compare = ["baysparpy>=0.0.2"]
 
+# `uv sync` installs this group by default, so one command gives a venv that runs
+# the tests and the comparison notebook. It points back at the extras above so the
+# lists live in one place; pip users keep `pip install -e ".[dev,compare]"`.
+[dependency-groups]
+dev = ["bayspar[dev,compare]"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["baysparpy*"]

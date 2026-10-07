@@ -144,8 +144,9 @@ one explicitly and tests it.
    `np.round` is half-to-even. Use `np.floor(x + 0.5)` and subtract 1 for 0-based indexing. The
    existing Colab notebook in `BAYSPAR/BAYSPAR_recode_colab.ipynb` uses `np.arange(0, N, N//Nsamps)`
    instead and flags it in a comment as a deviation — that deviation does not carry over.
-   `brews/baysparpy` takes the **first** `nens` draws (`alpha_samples_comp[jj]` for `jj in
-   range(nens)`), which is a third behaviour again; MATLAB deliberately spreads the thinning across
+   `brews/baysparpy` ships only draws 10,001–20,000 of the chain and takes the **first** `nens` of
+   those (`alpha_samples_comp[jj]` for `jj in range(nens)`), a contiguous block starting at draw
+   10,001, which is a third behaviour again; MATLAB deliberately spreads the thinning across
    the full chain.
 
 3. **Reshape order.** MATLAB `reshape` is column-major. Any port of the analogue-mode flattening must
@@ -237,7 +238,8 @@ arithmetic that takes a few seconds.
 core. Any future parallelism is opt-in and explicit (`n_jobs`), never a side effect of a library.
 
 Two further deviations from MATLAB worth recording, both verified in the 0.0.3 source:
-- it uses the first `nens` draws rather than MATLAB's spread thinning (§4 item 2);
+- it ships draws 10,001–20,000 only and uses the first `nens` of those, rather than MATLAB's spread
+  thinning over all 20,000 (§4 item 2);
 - it ships only `*_comp` parameter files, and analogue mode reads α, β from those at the analogue
   cells. Because `params_analog.mat` is bit-identical to that subset (§3.2 finding 2), this happens
   to be **numerically correct** — worth stating explicitly, since it looks like a substantive

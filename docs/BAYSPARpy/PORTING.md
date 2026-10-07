@@ -282,7 +282,10 @@ def _matlab_thinning(n_total: int, n_draws: int) -> np.ndarray:
 ```
 The comment in the MATLAB ("so as to use the full span of the ensemble even if few samples are
 used") is the point of the whole line, and two existing ports lose it: the Colab notebook uses a
-step-`arange` (and flags the difference itself), `brews/baysparpy` takes the first `nens` draws.
+step-`arange` (and flags the difference itself), and `brews/baysparpy` uses one contiguous block.
+It ships only draws 10,001–20,000 of this chain (its `alpha_samples_comp.mat` is
+`params_standard.mat[:, 10000:]`, bit for bit, and likewise β and τ²) and takes the first `nens`
+of those, so its default 5000 are draws 10,001–15,000 and it cannot exceed 10,000.
 For `Nsamps=1000` the indices are 1, 21, 41, … 20000 — see `reference_trace.txt` §A, which tabulates
 them for five values of `Nsamps` including the rounding-sensitive 999 and 1001.
 
@@ -767,3 +770,4 @@ MATLAB would settle it, and is a five-minute job for anyone with a licence.
 | 2026-09-11 | First version: 4 MATLAB files, 45 entries, 10 in the register. No Python written yet — every entry describes intended behaviour. |
 | 2026-09-12 | Validated against the original functions executing (Octave 8.4): 18 golden tests, 83 passing overall. `BT-11` gains the exact reproduction of `prctile` over the reference's own ensemble; `BT-03` records why `bayspar_tex.m` will not run under Octave for `'subT'`. |
 | 2026-09-12 | The port landed in `BAYSPARpy/`; 43 of 45 entries now have a passing test and 2 are skipped as Phase 0 work. Two entries changed as a result: `BTA-05` gains the measured size of the τ² mis-pairing (Monte-Carlo noise, on the Wilson Lake demo), and `STO-04` records seven SST coretops whose target error SD is exactly zero, which the refit will have to handle. |
+| 2026-10-07 | `BT-06`: `brews/baysparpy`'s draws are the second half of this chain (draws 10,001–20,000), not the first `nens` of all 20,000 as previously stated. Found while building the comparison dossier (`audit/dossier/`). |

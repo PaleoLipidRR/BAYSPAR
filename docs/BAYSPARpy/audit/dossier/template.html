@@ -1,0 +1,1263 @@
+<title>BAYSPAR Port Dossier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Serif:ital@1&display=swap">
+<style>
+/* Layout: a sticky tab bar over one view at a time; function views read top to bottom
+   (math, then line-by-line stages in three aligned columns, then results). */
+:root {
+  --bg: #f3f5f6; --surface: #ffffff; --sunk: #e8ecef; --ink: #142029; --muted: #56636e;
+  --faint: #8995a0; --line: #d4dbe1; --land: #dfe4e8;
+  --m: #2a78d6; --p: #eb6834; --b: #1baf7a;
+  --violet: #6741d9; --amber: #9a5b00; --crimson: #c3284a;
+  --tk-kw: #8a3ffc; --tk-str: #0f7b5f; --tk-com: #7b8794; --tk-num: #b5520b; --tk-fn: #1f5fbf;
+  --hl: rgba(255, 196, 0, .18);
+  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --f-math: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+  --gutter: clamp(16px, 4vw, 40px);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e151b; --surface: #151f27; --sunk: #1c2832; --ink: #e2e8ed; --muted: #9aa8b4;
+  --faint: #6d7b87; --line: #2a3843; --land: #23303a;
+  --m: #5b9cf0; --p: #f08a5d; --b: #3cc893;
+  --violet: #a48bff; --amber: #e0a640; --crimson: #ff6f8a;
+  --tk-kw: #c4a2ff; --tk-str: #5fd3a8; --tk-com: #7d8b97; --tk-num: #f2a065; --tk-fn: #7fb0ff;
+  --hl: rgba(255, 196, 0, .13); color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #0e151b; --surface: #151f27; --sunk: #1c2832; --ink: #e2e8ed; --muted: #9aa8b4;
+  --faint: #6d7b87; --line: #2a3843; --land: #23303a;
+  --m: #5b9cf0; --p: #f08a5d; --b: #3cc893;
+  --violet: #a48bff; --amber: #e0a640; --crimson: #ff6f8a;
+  --tk-kw: #c4a2ff; --tk-str: #5fd3a8; --tk-com: #7d8b97; --tk-num: #f2a065; --tk-fn: #7fb0ff;
+  --hl: rgba(255, 196, 0, .13); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--f-body); }
+a { color: inherit; text-decoration-color: var(--faint); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--ink); }
+:focus-visible { outline: 2px solid var(--m); outline-offset: 2px; border-radius: 3px; }
+code, .mono { font-family: var(--f-mono); font-size: .88em; }
+p code, li code, td code, .cap code { background: var(--sunk); padding: .05em .3em; border-radius: 3px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(2.1rem, 5vw, 3.4rem); font-weight: 700; letter-spacing: -.01em; }
+h2 { font-size: 1.6rem; font-weight: 600; }
+h3 { font-size: 1.18rem; font-weight: 600; }
+.eyebrow { font-family: var(--f-display); font-size: .78rem; font-weight: 600; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--muted); }
+.wrap { max-width: 1480px; margin: 0 auto; padding-inline: var(--gutter); }
+.prose { max-width: 72ch; }
+.prose p { margin: 0 0 .8em; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* ---------- top bar */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg);
+  border-bottom: 1px solid var(--line); }
+.bar .wrap { display: flex; align-items: center; gap: 20px; min-height: 52px; }
+.brand { font-family: var(--f-display); font-weight: 700; font-size: 1.02rem; white-space: nowrap;
+  text-decoration: none; display: flex; gap: 8px; align-items: center; }
+.brand .dots { display: inline-flex; gap: 3px; }
+.brand .dots i { width: 8px; height: 8px; border-radius: 50%; display: block; }
+.tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; min-width: 0; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs a { font-family: var(--f-display); font-weight: 600; font-size: .92rem; padding: 14px 11px 12px;
+  text-decoration: none; color: var(--muted); white-space: nowrap; border-bottom: 2px solid transparent; }
+.tabs a:hover { color: var(--ink); }
+.tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--ink); }
+
+/* ---------- implementation identity */
+.i-m { --c: var(--m); } .i-p { --c: var(--p); } .i-b { --c: var(--b); }
+.swatch { display: inline-block; width: .7em; height: .7em; border-radius: 50%; background: var(--c);
+  vertical-align: baseline; margin-right: .35em; }
+.who-m { color: var(--m); } .who-p { color: var(--p); } .who-b { color: var(--b); }
+
+/* ---------- views */
+.view { padding-block: 36px 80px; }
+.view[hidden] { display: none !important; }
+.vhead { display: grid; gap: 14px; margin-bottom: 34px; }
+.vhead .lede { font-size: 1.08rem; color: var(--muted); max-width: 70ch; margin: 0; }
+.provenance { display: flex; flex-wrap: wrap; gap: 8px 22px; font-family: var(--f-mono); font-size: .84rem; }
+.provenance span { display: inline-flex; align-items: center; }
+section.block { margin-top: 48px; display: grid; gap: 16px; }
+section.block > header { display: grid; gap: 6px; }
+
+/* ---------- overview */
+.hero { display: grid; gap: 18px; padding-block: 18px 8px; }
+.hero h1 span { color: var(--muted); font-weight: 600; }
+.trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.impl { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 18px 16px;
+  display: grid; gap: 10px; align-content: start; border-top: 4px solid var(--c); }
+.impl h3 { display: flex; align-items: baseline; gap: 8px; }
+.impl .by { color: var(--muted); font-size: .9rem; margin: 0; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 0; font-size: .9rem; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+.agree { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
+.panel h3 { margin-bottom: 10px; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-display); font-weight: 600; color: var(--muted); font-size: .84rem; letter-spacing: .02em; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.matrix td { min-width: 180px; }
+.matrix td:first-child { min-width: 170px; font-weight: 500; }
+.matrix th.i-m, .matrix th.i-p, .matrix th.i-b { color: var(--c); }
+.flag { display: inline-block; font-size: .72rem; font-weight: 600; letter-spacing: .03em; padding: 1px 7px;
+  border-radius: 999px; margin-right: 6px; vertical-align: 1px; white-space: nowrap; }
+.callout { font-size: .95rem; color: var(--muted); margin: 10px 0 0; }
+
+.pipeline { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; counter-reset: step; }
+.pipeline a { flex: 1 1 150px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+  padding: 12px 14px; text-decoration: none; display: grid; gap: 4px; counter-increment: step; }
+.pipeline a::before { content: counter(step); font-family: var(--f-mono); font-size: .75rem; color: var(--faint); }
+.pipeline a:hover { border-color: var(--ink); }
+.pipeline b { font-family: var(--f-display); font-weight: 600; }
+.pipeline span { font-size: .84rem; color: var(--muted); }
+
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px;
+  text-decoration: none; display: grid; gap: 10px; align-content: start; transition: border-color .15s, transform .15s; }
+.card:hover { border-color: var(--ink); transform: translateY(-2px); }
+.card .files { display: grid; gap: 2px; font-family: var(--f-mono); font-size: .8rem; }
+.card p { margin: 0; color: var(--muted); font-size: .93rem; }
+.card .go { font-family: var(--f-display); font-weight: 600; font-size: .9rem; }
+
+/* ---------- status pills */
+.st { font-family: var(--f-body); font-size: .72rem; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  white-space: nowrap; border: 1px solid transparent; }
+.st-ref { border-color: var(--line); color: var(--muted); }
+.st-same, .st-equiv { background: var(--sunk); color: var(--ink); }
+.st-changed, .st-fixed { background: color-mix(in srgb, var(--violet) 14%, transparent); color: var(--violet); }
+.st-diff { background: color-mix(in srgb, var(--amber) 15%, transparent); color: var(--amber); }
+.st-defect { background: color-mix(in srgb, var(--crimson) 13%, transparent); color: var(--crimson); }
+.st-missing { color: var(--muted); border-color: var(--line); border-style: dashed; }
+
+/* ---------- stages */
+.compare-ctl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: .88rem; color: var(--muted); }
+.compare-ctl label { display: inline-flex; gap: 6px; align-items: center; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px 4px 10px; cursor: pointer; color: var(--ink); }
+.compare-ctl input { accent-color: var(--c); margin: 0; }
+.stages { display: grid; gap: 34px; }
+.stage { display: grid; gap: 10px; scroll-margin-top: 70px; }
+.stagehead { display: flex; gap: 12px; align-items: baseline; border-top: 1px solid var(--line); padding-top: 16px; }
+.stagenote { max-width: 80ch; color: var(--muted); }
+.stagenote p { margin: 0; }
+.stagenote:empty { display: none; }
+.tri { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: 14px; }
+.tri[data-hide~="M"] .col[data-impl="M"], .tri[data-hide~="P"] .col[data-impl="P"],
+.tri[data-hide~="B"] .col[data-impl="B"] { display: none; }
+.col { min-width: 0; display: grid; gap: 8px; align-content: start; }
+.col[data-impl="M"] { --c: var(--m); } .col[data-impl="P"] { --c: var(--p); } .col[data-impl="B"] { --c: var(--b); }
+.colhead { display: flex; justify-content: space-between; gap: 8px; align-items: center;
+  border-bottom: 2px solid var(--c); padding-bottom: 5px; }
+.colhead .who { font-family: var(--f-display); font-weight: 700; color: var(--c); font-size: .95rem; }
+.cap { margin: 0; font-size: .88rem; line-height: 1.5; }
+.nocode { border: 1px dashed var(--line); border-radius: 6px; padding: 18px; text-align: center; color: var(--faint);
+  font-size: .88rem; }
+figure.code { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; min-width: 0; }
+figure.code figcaption { display: flex; justify-content: space-between; gap: 8px; padding: 5px 10px;
+  border-bottom: 1px solid var(--line); font-family: var(--f-mono); font-size: .74rem; color: var(--muted); }
+figure.code pre { margin: 0; overflow-x: auto; padding: 8px 0; font-size: 12.3px; line-height: 1.55; }
+figure.code code { font-family: var(--f-mono); font-size: inherit; display: block; min-width: max-content; }
+.ln { display: block; padding-right: 14px; white-space: pre; }
+.ln::before { content: attr(data-n); display: inline-block; width: 3.4em; padding-right: 1em; text-align: right;
+  color: var(--faint); user-select: none; }
+.ln.hl { background: var(--hl); }
+.gap { display: block; padding-left: 3.4em; color: var(--faint); line-height: 1.2; }
+.k, .kn, .kd, .kc, .kr, .ow { color: var(--tk-kw); }
+.s, .s1, .s2, .sa, .se, .si, .sd, .dl { color: var(--tk-str); }
+.c, .c1, .cm, .ch, .cs { color: var(--tk-com); font-style: italic; }
+.m, .mi, .mf, .mo, .il { color: var(--tk-num); }
+.nf, .fm { color: var(--tk-fn); }
+.nb, .bp { color: var(--tk-fn); }
+.nd { color: var(--tk-kw); }
+
+/* ---------- math */
+.math { font-family: var(--f-math); font-style: italic; font-size: 1.08em; }
+.math .up { font-style: normal; font-family: var(--f-body); }
+.formula { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px;
+  display: grid; gap: 8px; overflow-x: auto; }
+.formula .row { display: grid; grid-template-columns: minmax(150px, max-content) 1fr; gap: 6px 20px; align-items: baseline; }
+.formula .lab { font-size: .82rem; color: var(--muted); }
+.frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; margin: 0 .2em; }
+.frac > span:first-child { border-bottom: 1px solid currentColor; padding: 0 .3em; }
+.frac > span:last-child { padding: 0 .3em; }
+
+/* ---------- figures */
+.fig { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0;
+  display: grid; gap: 10px; }
+.fig h3 { font-size: 1.02rem; }
+.fig .sub { margin: 0; color: var(--muted); font-size: .9rem; max-width: 80ch; }
+.chart { width: 100%; min-height: 120px; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .84rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; background: var(--c); }
+.legend i.band { height: 10px; background: color-mix(in srgb, var(--m) 18%, transparent); }
+.legend i.dash { background: repeating-linear-gradient(90deg, var(--faint) 0 5px, transparent 5px 8px); }
+.legend i.dot { width: 9px; height: 9px; border-radius: 50%; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 26px; align-items: center; font-size: .88rem; }
+.controls label { display: grid; gap: 2px; min-width: 200px; flex: 1 1 200px; }
+.controls label span { color: var(--muted); display: flex; justify-content: space-between; }
+.controls output { font-family: var(--f-mono); color: var(--ink); }
+input[type=range] { width: 100%; accent-color: var(--ink); }
+.readout { display: flex; flex-wrap: wrap; gap: 6px 22px; font-family: var(--f-mono); font-size: .84rem; color: var(--muted); }
+.readout b { color: var(--ink); font-weight: 500; }
+
+svg text { fill: var(--muted); font-family: var(--f-body); font-size: 11.5px; }
+svg .axis line, svg .axis path { stroke: var(--line); }
+svg .grid line { stroke: var(--line); stroke-opacity: .7; }
+svg .lbl { fill: var(--ink); font-weight: 500; }
+
+footer.note { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; }
+footer.note p { margin: 0 0 6px; max-width: 100ch; }
+
+@media (max-width: 1080px) {
+  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tri { --cols: 1 !important; }
+}
+@media (max-width: 760px) {
+  .trio, .agree, .cards, .two { grid-template-columns: minmax(0, 1fr); }
+  .brand .txt { display: none; }
+  .formula .row { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } .card:hover { transform: none; } }
+</style>
+
+<nav class="bar" aria-label="Sections">
+  <div class="wrap">
+    <a class="brand" href="#overview"><span class="dots"><i style="background:var(--m)"></i><i style="background:var(--p)"></i><i style="background:var(--b)"></i></span><span class="txt">BAYSPAR Port Dossier</span></a>
+    <div class="tabs" role="list">
+      <a href="#overview" role="listitem">Overview</a>
+      <a href="#standard" role="listitem">Standard</a>
+      <a href="#analog" role="listitem">Analogue</a>
+      <a href="#forward" role="listitem">Forward</a>
+      <a href="#distance" role="listitem">Distance</a>
+      <a href="#draws" role="listitem">Draws &amp; percentiles</a>
+      <a href="#data" role="listitem">Data &amp; loading</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+<!-- ===================================================================== OVERVIEW -->
+<div class="view wrap" id="v-overview" data-view="overview">
+  <div class="hero">
+    <p class="eyebrow">TEX₈₆ paleothermometry · Tierney &amp; Tingley (2014, 2015)</p>
+    <h1>BAYSPAR <span>in three implementations</span></h1>
+    <p class="lede" style="margin:0;font-size:1.08rem;color:var(--muted);max-width:70ch">The original MATLAB code, S. B. Malevich's <code>brews/baysparpy</code>, and the BAYSPARpy port in this repository, read side by side and run on the same inputs. Each function has its own page: the math it computes, every step of the code in three columns, and what comes out.</p>
+  </div>
+
+  <section class="block">
+    <div class="trio">
+      <article class="impl i-m">
+        <h3><span class="swatch"></span>MATLAB</h3>
+        <p class="by">Tierney &amp; Tingley. The reference.</p>
+        <dl class="kv">
+          <dt>Code</dt><dd>4 functions, 412 lines</dd>
+          <dt>Draws in the store</dt><dd>20,000</dd>
+          <dt>Default ensemble</dt><dd>1,000, spread across the chain</dd>
+          <dt>Posterior</dt><dd>closed form, element by element</dd>
+          <dt>Reproducible</dt><dd>no: global random stream</dd>
+        </dl>
+      </article>
+      <article class="impl i-p">
+        <h3><span class="swatch"></span>BAYSPARpy</h3>
+        <p class="by">This repository, <code>baysparpy</code> 0.1.0.dev0.</p>
+        <dl class="kv">
+          <dt>Code</dt><dd>11 modules, 1,089 lines with docstrings</dd>
+          <dt>Draws in the store</dt><dd>20,000 (the MATLAB file)</dd>
+          <dt>Default ensemble</dt><dd>1,000, spread like MATLAB</dd>
+          <dt>Posterior</dt><dd>closed form, broadcast</dd>
+          <dt>Reproducible</dt><dd>yes, with <code>seed=</code></dd>
+        </dl>
+      </article>
+      <article class="impl i-b">
+        <h3><span class="swatch"></span>brews/baysparpy</h3>
+        <p class="by">S. B. Malevich, PyPI <code>baysparpy</code> 0.0.3, imports as <code>bayspar</code>.</p>
+        <dl class="kv">
+          <dt>Code</dt><dd>4 modules, 683 lines (without plotting)</dd>
+          <dt>Draws in the store</dt><dd>10,000: draws 10,001–20,000</dd>
+          <dt>Default ensemble</dt><dd>5,000, the first of its 10,000</dd>
+          <dt>Posterior</dt><dd>N × N solve and Cholesky per draw</dd>
+          <dt>Reproducible</dt><dd>only via <code>np.random.seed</code></dd>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+  <section class="block">
+    <header><p class="eyebrow">Do they agree?</p><h2>Yes, to within Monte-Carlo noise</h2></header>
+    <div class="agree">
+      <div class="panel">
+        <h3>Standard mode · Lopes dos Santos et al. (2010)</h3>
+        <div class="tablewrap"><table class="tnum" id="t-agree-std"></table></div>
+        <p class="callout" id="c-agree-std"></p>
+      </div>
+      <div class="panel">
+        <h3>Analogue mode · Wilson Lake</h3>
+        <div class="tablewrap"><table class="tnum" id="t-agree-an"></table></div>
+        <p class="callout" id="c-agree-an"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <header><p class="eyebrow">How a prediction is made</p><h2>Six steps, the same in all three</h2></header>
+    <nav class="pipeline" aria-label="Prediction steps">
+      <a href="#standard"><b>Find the cell</b><span>Which 20° × 20° calibration cell holds the site.</span></a>
+      <a href="#draws"><b>Choose draws</b><span>1,000 of 20,000 posterior samples of α, β, τ².</span></a>
+      <a href="#standard"><b>Set the prior</b><span>Mean of modern temperatures within 500 km.</span></a>
+      <a href="#standard"><b>Invert</b><span>A conjugate normal update for every draw.</span></a>
+      <a href="#standard"><b>Sample</b><span>One temperature per TEX₈₆ value per draw.</span></a>
+      <a href="#draws"><b>Summarise</b><span>5th, 50th and 95th percentiles.</span></a>
+    </nav>
+    <p class="callout">Analogue mode replaces the first step with a search for cells whose modern TEX₈₆ looks like the sample. The forward model runs the calibration the other way, from temperature to TEX₈₆.</p>
+  </section>
+
+  <section class="block">
+    <header><p class="eyebrow">Where they differ</p><h2>Every behavioural difference, one row each</h2></header>
+    <div class="panel tablewrap">
+      <table class="matrix">
+        <thead><tr><th>Step</th><th class="i-m">MATLAB</th><th class="i-p">BAYSPARpy</th><th class="i-b">brews/baysparpy</th></tr></thead>
+        <tbody>
+          <tr><td><a href="#draws">Draws available</a></td><td>20,000</td><td>20,000, same file</td><td><span class="flag st-diff">differs</span>10,000: the second half of the same chain</td></tr>
+          <tr><td><a href="#draws">Which draws are used</a></td><td>Spread across the chain: 1, 21, 41 … 20,000</td><td>Same indices</td><td><span class="flag st-diff">differs</span>The first <code>nens</code> of its half: draws 10,001 onward</td></tr>
+          <tr><td><a href="#standard">Default ensemble</a></td><td>1,000</td><td>1,000</td><td><span class="flag st-diff">differs</span>5,000</td></tr>
+          <tr><td><a href="#standard">Argument order</a></td><td><code>(dats, lon, lat, …)</code></td><td>Same, plus keywords</td><td><span class="flag st-diff">differs</span><code>(tex, lat, lon, …)</code></td></tr>
+          <tr><td><a href="#standard">Posterior solve</a></td><td>Closed form, element by element</td><td>Same formula, broadcast</td><td><span class="flag st-diff">differs</span>Dense N × N solve per draw; same answer, cost grows as N³</td></tr>
+          <tr><td><a href="#standard">Prior mean search</a></td><td>Within 500 km, else the nearest value</td><td>Same; radius adjustable</td><td><span class="flag st-diff">differs</span>Same value; stops on an assert when nothing is within 500 km</td></tr>
+          <tr><td><a href="#standard">Site on a cell edge</a></td><td><span class="flag st-defect">defect</span>Errors, or silently doubles rows</td><td><span class="flag st-fixed">fixed</span>Nearest centre, with a warning</td><td><span class="flag st-defect">defect</span>Same as MATLAB</td></tr>
+          <tr><td><a href="#analog">Analogue τ² pairing</a></td><td><span class="flag st-defect">defect</span>τ² from a different draw than α, β</td><td><span class="flag st-fixed">fixed</span>Paired; <code>mode="matlab"</code> reproduces it</td><td><span class="flag st-fixed">fixed</span>Paired</td></tr>
+          <tr><td><a href="#analog">Analogue ensemble shape</a></td><td><span class="flag st-defect">defect</span>N × (cells·draws), not as documented</td><td><span class="flag st-fixed">fixed</span>N × cells × draws</td><td><span class="flag st-fixed">fixed</span>N × cells × draws</td></tr>
+          <tr><td><a href="#draws">Percentiles</a></td><td>Hazen</td><td>Hazen, exact match</td><td><span class="flag st-diff">differs</span>'nearest'; the method fails on NumPy 2</td></tr>
+          <tr><td><a href="#draws">Random numbers</a></td><td>Global stream</td><td><span class="flag st-changed">changed</span>Seedable per call</td><td>Global NumPy stream</td></tr>
+          <tr><td><a href="#forward">Forward model output</a></td><td>1,000 random columns, clipped to [0, 1]</td><td><span class="flag st-changed">changed</span><code>n_out</code> columns, clipped, clipping recorded</td><td><span class="flag st-diff">differs</span><code>nens</code> columns, not clipped</td></tr>
+          <tr><td><a href="#forward">Forward analogue mode</a></td><td>Yes, searched in °C</td><td>Yes</td><td><span class="flag st-missing">missing</span>Not implemented</td></tr>
+          <tr><td><a href="#data">Data loading</a></td><td>From <code>./ModelOutput</code> on every call</td><td><span class="flag st-changed">changed</span>Found once, cached</td><td><span class="flag st-diff">differs</span>At import, then deep-copied per call</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="block">
+    <header><p class="eyebrow">Function by function</p><h2>Open a comparison</h2></header>
+    <div class="cards">
+      <a class="card" href="#standard"><p class="eyebrow">Temperature from TEX₈₆</p><h3>Standard prediction</h3>
+        <div class="files"><span class="who-m">bayspar_tex.m</span><span class="who-p">bayspar_tex.py</span><span class="who-b">predict.predict_seatemp</span></div>
+        <p>The conjugate update, the prior-mean search and the grid-cell lookup, with an interactive posterior.</p><span class="go">9 steps →</span></a>
+      <a class="card" href="#analog"><p class="eyebrow">Temperature from TEX₈₆, deep time</p><h3>Analogue prediction</h3>
+        <div class="files"><span class="who-m">bayspar_tex_analog.m</span><span class="who-p">bayspar_tex_analog.py</span><span class="who-b">predict.predict_seatemp_analog</span></div>
+        <p>How analogue cells are chosen, and the τ² pairing defect drawn out.</p><span class="go">6 steps →</span></a>
+      <a class="card" href="#forward"><p class="eyebrow">TEX₈₆ from temperature</p><h3>Forward model</h3>
+        <div class="files"><span class="who-m">TEX_forward.m</span><span class="who-p">tex_forward.py</span><span class="who-b">predict.predict_tex</span></div>
+        <p>The calibration run forwards, with clipping and output size compared.</p><span class="go">5 steps →</span></a>
+      <a class="card" href="#distance"><p class="eyebrow">Geometry</p><h3>Chordal distance</h3>
+        <div class="files"><span class="who-m">EarthChordDistances_2.m</span><span class="who-p">distance.py</span><span class="who-b">observations.chord_distance</span></div>
+        <p>Straight line through the Earth, not along it. All three give identical numbers.</p><span class="go">1 step →</span></a>
+      <a class="card" href="#draws"><p class="eyebrow">Shared machinery</p><h3>Draws &amp; percentiles</h3>
+        <div class="files"><span class="who-m">round(linspace(…)), prctile</span><span class="who-p">utils.py</span><span class="who-b">loop index, Prediction.percentile</span></div>
+        <p>Which posterior samples get used, how percentiles are taken, and what each choice costs.</p><span class="go">3 steps →</span></a>
+      <a class="card" href="#data"><p class="eyebrow">Inputs</p><h3>Data &amp; loading</h3>
+        <div class="files"><span class="who-m">load('ModelOutput/…')</span><span class="who-p">stores.py</span><span class="who-b">modelparams, observations</span></div>
+        <p>Where the fitted parameters live, when they are read, and why there is one parameter file, not two.</p><span class="go">3 steps →</span></a>
+    </div>
+  </section>
+
+  <footer class="note" id="prov"></footer>
+</div>
+
+<!-- ===================================================================== STANDARD -->
+<div class="view wrap" id="v-standard" data-view="standard" hidden>
+  <header class="vhead">
+    <p class="eyebrow">Standard prediction · temperature from TEX₈₆ at a known site</p>
+    <h1>bayspar_tex</h1>
+    <div class="provenance"><span class="who-m"><span class="swatch i-m"></span>bayspar_tex.m</span><span class="who-p"><span class="swatch i-p"></span>baysparpy/bayspar_tex.py</span><span class="who-b"><span class="swatch i-b"></span>bayspar/predict.py · predict_seatemp</span></div>
+    <p class="lede">Turns a TEX₈₆ series from one core into temperatures. The calibration's slope and intercept come from the grid cell that contains the core, which assumes the ocean there behaved as it does today.</p>
+  </header>
+
+  <section class="block">
+    <header><p class="eyebrow">The math</p><h2>A regression, inverted one draw at a time</h2></header>
+    <div class="formula">
+      <div class="row"><span class="lab">Calibration, per cell</span><span class="math">TEX<sub>86</sub> = α + β T + ε,&nbsp;&nbsp; ε ~ <span class="up">N</span>(0, τ²)</span></div>
+      <div class="row"><span class="lab">Prior on temperature</span><span class="math">T ~ <span class="up">N</span>(μ₀, σ₀²)</span></div>
+      <div class="row"><span class="lab">Posterior precision</span><span class="math">λ = 1/σ₀² + β²/τ²</span></div>
+      <div class="row"><span class="lab">Posterior mean</span><span class="math">μ = <span class="frac"><span>μ₀/σ₀² + β (x − α)/τ²</span><span>λ</span></span>,&nbsp;&nbsp; sd = 1/√λ</span></div>
+    </div>
+    <div class="fig">
+      <h3>One TEX₈₆ value, one draw</h3>
+      <p class="sub">The likelihood of a TEX₈₆ value <span class="math">x</span>, read as a function of temperature, is a normal curve centred on <span class="math">(x − α)/β</span> with width <span class="math">τ/β</span>. The posterior is the precision-weighted compromise between it and the prior. Parameters here are the median draw for this site's cell; the prior mean is the one all three implementations compute for it.</p>
+      <div class="controls">
+        <label for="cj-x"><span>TEX₈₆ value <output id="cj-xo"></output></span><input type="range" id="cj-x" min="0.40" max="0.80" step="0.005"></label>
+        <label for="cj-s"><span>Prior standard deviation σ₀ (°C) <output id="cj-so"></output></span><input type="range" id="cj-s" min="2" max="15" step="0.5" value="6"></label>
+      </div>
+      <div class="legend"><span><i class="dash"></i>prior</span><span><i style="background:var(--muted)"></i>likelihood</span><span><i style="background:var(--ink);height:4px"></i>posterior</span></div>
+      <div class="chart" id="ch-conj"></div>
+      <div class="readout" id="cj-read"></div>
+    </div>
+    <div class="fig">
+      <h3>Where the prior mean comes from</h3>
+      <p class="sub">Each dot is a 1° cell of modern sea-surface temperature. The prior mean is the average of every cell within 500 km of the core (filled), here <b id="pm-n"></b> of them. The dashed square is the edge of the 20° calibration cell centred on (10° W, 0°) whose α and β the site uses.</p>
+      <div class="chart" id="ch-prior"></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <header><p class="eyebrow">Line by line</p><h2>Nine steps, three implementations</h2></header>
+    <div class="compare-ctl" data-ctl>Show:
+      <label class="i-m"><input type="checkbox" data-impl="M" checked>MATLAB</label>
+      <label class="i-p"><input type="checkbox" data-impl="P" checked>BAYSPARpy</label>
+      <label class="i-b"><input type="checkbox" data-impl="B" checked>brews/baysparpy</label>
+    </div>
+    <div class="stages">
+<!--stage
+id: std-args
+title: Arguments and defaults
+note: <p>The signatures put latitude and longitude in different orders, so a positional call written for one package swaps the coordinates in another.</p>
+M: bayspar_tex.m:1+48-59 | ref | <code>(dats, lon, lat, prior_std, runname, Nsamps, ens_sel)</code>, with optional arguments counted by <code>nargin</code>.
+P: bayspar_tex.py:39-43 | equiv | MATLAB's order. Optional arguments become keywords with MATLAB's defaults (BT-01).
+B: predict.py:126 | diff | <code>(tex, lat, lon, …)</code>: latitude first. 5,000 draws by default instead of 1,000.
+-->
+<!--stage
+id: std-load
+title: Load the parameters and the climatology
+M: bayspar_tex.m:61-70 | ref | Reads two .mat files from <code>./ModelOutput</code> on every call, so it only works when run from the repository root.
+P: bayspar_tex.py:74 ; stores.py:227-242 | equiv | The same file, found once and cached (see <a href="#data">Data &amp; loading</a>).
+B: predict.py:155-156 ; modelparams/core.py:95-101 | diff | Its own copy of the data, read at import and deep-copied on every call. It holds 10,000 draws, not 20,000.
+-->
+<!--stage
+id: std-thin
+title: Choose which draws to use
+note: <p>The fitted model is 20,000 joint posterior draws of α, β and τ². With the default 1,000, MATLAB keeps every 20th, so the sample spans the whole chain. See <a href="#draws">Draws &amp; percentiles</a> for what the alternatives cost.</p>
+M: bayspar_tex.m:84-89 | ref | Draws 1, 21, 41, … 20,000.
+P: bayspar_tex.py:75-79 ; utils.py:55-59 | same | Same indices. <code>np.round</code> rounds halves to even, so the port rounds half away from zero by hand, as MATLAB does (BT-06).
+B: predict.py:176-181:hl=177-179 | diff | No thinning: <code>jj</code> runs 0 … nens−1 through its 10,000 draws, which are draws 10,001 onward of the full chain.
+-->
+<!--stage
+id: std-prior
+title: Prior mean from nearby modern temperatures
+note: <p>The average of every 1° climatology cell within 500 km of the site, by chordal distance, or the single nearest cell when none is that close.</p>
+M: bayspar_tex.m:110-126 | ref |
+P: stores.py:178-183 ; bayspar_tex.py:81-84 | same | A stable sort keeps tied distances in MATLAB's order, which decides which cells are averaged (BT-07).
+B: predict.py:163-165 ; observations/core.py:153-170:hl=161 | diff | Gives the same 26.867441 °C at this site. When nothing is within 500 km it stops on <code>assert n_in_buffer &gt; 0</code> instead of falling back to the nearest cell.
+-->
+<!--stage
+id: std-cell
+title: Find the calibration cell
+note: <p>α and β vary in space on a grid of 162 cells, each 20° × 20°. The site takes the parameters of the cell whose centre lies within 10° of it in both longitude and latitude.</p>
+M: bayspar_tex.m:133-140 | defect | The test is inclusive (<code>&lt;=</code>), so a site exactly on a cell edge, such as lon 0° or lat 10°, matches two cells. A series then fails with a dimension error, and a single value silently returns two rows (BT-08).
+P: stores.py:119-141 | fixed | Takes the nearest centre and warns, naming both cells. <code>strict_grid=True</code> raises instead.
+B: modelparams/core.py:44-52+62-68 | defect | The same inclusive test. <code>.squeeze()</code> then hands back two rows and the loop fails further on. It also rejects lon = −180.
+-->
+<!--stage
+id: std-solve
+title: Invert the calibration, one conjugate update per draw
+note: <p>For each draw (α, β, τ²) the posterior for each sample is normal, with the closed-form mean and variance above. Samples are updated independently because the prior has no correlation in time.</p>
+M: bayspar_tex.m:143-152 | ref | Tiles every term to N × 1,000 with <code>repmat</code>, then works element by element.
+P: bayspar_tex.py:33-36 ; bayspar_tex.py:86 | same | The same four lines, broadcast instead of tiled. The denominator does not depend on the data, so it is one number per draw rather than N × M (BT-09).
+B: predict.py:172-181 ; utils.py:30-40 | equiv | The same posterior, computed with N × N matrices: a linear solve and a Cholesky factorisation for every draw. The matrices are diagonal, so the extra work buys nothing.
+-->
+<!--stage
+id: std-draw
+title: Sample the posterior
+M: bayspar_tex.m:153 | ref | MATLAB's global random stream, so every run differs.
+P: bayspar_tex.py:72+87 | changed | One generator per call. <code>seed=None</code> keeps MATLAB's behaviour; an integer makes the run repeatable (GEN-03).
+B: utils.py:42 | equiv | NumPy's global stream, one vector per draw inside the loop.
+-->
+<!--stage
+id: std-pct
+title: Summarise as the 5th, 50th and 95th percentiles
+M: bayspar_tex.m:155-156 | ref | <code>prctile</code> uses Hazen plotting positions. The <code>sort</code> inside it does nothing: <code>prctile</code> sorts anyway.
+P: bayspar_tex.py:89-90 ; utils.py:76-77 | same | <code>method="hazen"</code> reproduces MATLAB's percentiles exactly on MATLAB's own saved ensemble (BT-11).
+B: predict.py:45-70 | diff | Defaults to <code>'nearest'</code>. NumPy 2 removed the <code>interpolation=</code> keyword, so this method raises a TypeError on current NumPy.
+-->
+<!--stage
+id: std-out
+title: Return the result
+M: bayspar_tex.m:94-103+158-161 | ref | A struct: Preds, SiteLoc, GridLoc, PriorMean, PriorStd, and PredsEns if asked.
+P: bayspar_tex.py:89-99 | equiv | A <code>Prediction</code> dataclass with the same fields, plus the thinning indices, grid cell and seed.
+B: predict.py:184-190 | equiv | A <code>Prediction</code> holding the whole ensemble; percentiles are computed on request. Locations are stored as (lat, lon).
+-->
+    </div>
+  </section>
+
+  <section class="block">
+    <header><p class="eyebrow">What comes out</p><h2>Same inputs, three answers</h2></header>
+    <div class="fig">
+      <h3>Lopes dos Santos et al. (2010), 193 samples, SST, σ₀ = 6 °C, 1,000 draws</h3>
+      <p class="sub">Posterior median against age. The MATLAB line is drawn thickest and underneath. The lower panel is each port minus MATLAB; differences of this size are what a fresh random draw produces.</p>
+      <div class="legend"><span class="i-m"><i class="band"></i>MATLAB 5–95%</span><span class="i-m"><i style="height:4px"></i>MATLAB</span><span class="i-p"><i></i>BAYSPARpy</span><span class="i-b"><i></i>brews/baysparpy</span><span><i class="dash"></i>prior mean</span></div>
+      <div class="chart" id="ch-std"></div>
+    </div>
+    <div class="fig">
+      <h3>Run time against record length</h3>
+      <p class="sub">Wall-clock seconds for one standard-mode call at 1,000 draws, best of two, on the machine that built this page. The dense solve makes brews/baysparpy's cost grow roughly with N³; the closed form grows with N.</p>
+      <div class="legend"><span class="i-p"><i class="dot"></i>BAYSPARpy</span><span class="i-b"><i class="dot"></i>brews/baysparpy</span></div>
+      <div class="chart" id="ch-time"></div>
+    </div>
+  </section>
+</div>
+
+<!-- ===================================================================== ANALOGUE -->
+<div class="view wrap" id="v-analog" data-view="analog" hidden>
+  <header class="vhead">
+    <p class="eyebrow">Analogue prediction · temperature from TEX₈₆, location ignored</p>
+    <h1>bayspar_tex_analog</h1>
+    <div class="provenance"><span class="who-m"><span class="swatch i-m"></span>bayspar_tex_analog.m</span><span class="who-p"><span class="swatch i-p"></span>baysparpy/bayspar_tex_analog.py</span><span class="who-b"><span class="swatch i-b"></span>bayspar/predict.py · predict_seatemp_analog</span></div>
+    <p class="lede">For deep time, where a core's modern position says little about its past ocean. Instead of one cell, it pools every calibration cell whose modern coretops have TEX₈₆ like the sample's, then runs the same inversion as standard mode across all of them.</p>
+  </header>
+
+  <section class="block">
+    <header><p class="eyebrow">The selection</p><h2>Which cells count as analogues</h2></header>
+    <div class="two">
+      <div class="fig">
+        <h3>Mean coretop TEX₈₆ in each of the 80 cells</h3>
+        <p class="sub">Wilson Lake's 52 samples average <b id="an-mean"></b>. With <code>search_tol</code> = <b id="an-tol"></b> (twice their standard deviation), <b id="an-nsel"></b> cells fall inside the window. All three implementations pick the same cells.</p>
+        <div class="chart" id="ch-strip"></div>
+      </div>
+      <div class="fig">
+        <h3>Where those cells are</h3>
+        <p class="sub">The 162 calibration cells; outlined cells hold coretop data, filled cells are the analogues. Grey is land, drawn from the 1° climatology's coverage.</p>
+        <div class="chart" id="ch-world"></div>
+      </div>
+    </div>
+    <div class="fig">
+      <h3>The τ² pairing defect (BTA-05), with 3 cells and 4 draws</h3>
+      <p class="sub">MATLAB flattens α and β with a column-major <code>reshape</code> (cell changes fastest) but tiles τ² with <code>repmat</code> (draw changes fastest). Each column below is one flat position. Where the τ² draw differs from the α, β draw (outlined), the triple no longer comes from one posterior sample.</p>
+      <div class="chart" id="ch-pair"></div>
+      <p class="sub" id="an-pairnote"></p>
+    </div>
+  </section>
+
+  <section class="block">
+    <header><p class="eyebrow">Line by line</p><h2>Six steps, three implementations</h2></header>
+    <div class="compare-ctl" data-ctl>Show:
+      <label class="i-m"><input type="checkbox" data-impl="M" checked>MATLAB</label>
+      <label class="i-p"><input type="checkbox" data-impl="P" checked>BAYSPARpy</label>
+      <label class="i-b"><input type="checkbox" data-impl="B" checked>brews/baysparpy</label>
+    </div>
+    <div class="stages">
+<!--stage
+id: an-args
+title: Arguments
+M: bayspar_tex_analog.m:1 | ref | <code>(dats, prior_mean, prior_std, search_tol, runname, …)</code>. The prior mean is required: with no site there is nothing to search around.
+P: bayspar_tex_analog.py:40-43 | equiv | MATLAB's order. <code>mode="matlab"</code> switches on MATLAB's two defects, for bit-for-bit validation.
+B: predict.py:193 | diff | <code>search_tol</code> moves after <code>temptype</code>, and <code>prior_mean</code> defaults to None although the function cannot run without it.
+-->
+<!--stage
+id: an-load
+title: Load the parameters
+M: bayspar_tex_analog.m:60-63 | ref | A second parameter file, <code>params_analog.mat</code>, plus the coretop data.
+P: bayspar_tex_analog.py:74-76 ; stores.py:298-304 | equiv | <code>params_analog.mat</code> is the 80 data-bearing rows of the standard file, bit for bit, so the port reads those rows by index (STO-01).
+B: predict.py:223-224 | equiv | Also reads α and β from the standard store, by location. Same numbers, for the same reason.
+-->
+<!--stage
+id: an-select
+title: Find the analogue cells
+M: bayspar_tex_analog.m:90-103 | ref | A loop over the 80 cells, then an inclusive window.
+P: stores.py:220-224 ; bayspar_tex_analog.py:33-37+77 | same | One <code>bincount</code> for all 80 means, then the same inclusive window (BTA-02, BTA-03).
+B: observations/core.py:199-219 | same | A loop, as in MATLAB. Same 24 cells on Wilson Lake.
+-->
+<!--stage
+id: an-pair
+title: Line up α, β and τ² across the cells
+note: <p>τ² is one chain shared by every cell, so pooling has to keep each τ² with the α and β of the same draw. The diagram above shows what goes wrong.</p>
+M: bayspar_tex_analog.m:104-110:hl=107-110 | defect | <code>reshape</code> runs cell-fastest and <code>repmat</code> runs draw-fastest, so most α, β meet the τ² of another draw (BTA-05).
+P: bayspar_tex_analog.py:79-83+96-103 | fixed | Keeps α and β as a cells × draws block, so τ² broadcasts against its own draw. <code>mode="matlab"</code> reproduces the mis-pairing on lines 85–95.
+B: predict.py:245-256 | fixed | Loops over cells, then draws, indexing α, β and τ² with the same <code>jj</code>. Correctly paired.
+-->
+<!--stage
+id: an-solve
+title: Solve and summarise
+M: bayspar_tex_analog.m:114-128 | ref | The standard-mode solve, run on one flat row of cells × draws.
+P: bayspar_tex_analog.py:104-108 | same | Percentiles pool cells and draws together, as MATLAB does.
+B: predict.py:258-263 ; predict.py:66-70 | diff | The same pooling, <code>axis=(1, 2)</code>, with 'nearest' percentiles. Its N × N solve runs once per draw per cell: 24,000 times here.
+-->
+<!--stage
+id: an-ens
+title: Shape of the saved ensemble
+M: bayspar_tex_analog.m:130-133 | defect | The header promises N × cells × draws. The code returns N × (cells·draws), so the second axis is not the cell (BTA-08).
+P: bayspar_tex_analog.py:110-112 | fixed | N × cells × draws, with axis 1 in <code>analog_locs</code> order: 52 × 24 × 1,000 here.
+B: predict.py:244 | fixed | N × cells × draws: 52 × 24 × 1,000.
+-->
+    </div>
+  </section>
+
+  <section class="block">
+    <header><p class="eyebrow">What comes out</p><h2>Same inputs, three answers</h2></header>
+    <div class="fig">
+      <h3>Wilson Lake, 52 samples, SST, prior N(30, 20²), 1,000 draws per cell</h3>
+      <p class="sub">Posterior median against depth. BAYSPARpy runs with <code>mode="matlab"</code> here so all three see the same pooling. The lower panel is each port minus MATLAB.</p>
+      <div class="legend"><span class="i-m"><i class="band"></i>MATLAB 5–95%</span><span class="i-m"><i style="height:4px"></i>MATLAB</span><span class="i-p"><i></i>BAYSPARpy</span><span class="i-b"><i></i>brews/baysparpy</span><span><i class="dash"></i>prior mean</span></div>
+      <div class="chart" id="ch-an"></div>
+    </div>
+  </section>
+</div>
+
+<!-- ===================================================================== FORWARD -->
+<div class="view wrap" id="v-forward" data-view="forward" hidden>
+  <header class="vhead">
+    <p class="eyebrow">Forward model · TEX₈₆ from temperature</p>
+    <h1>TEX_forward</h1>
+    <div class="provenance"><span class="who-m"><span class="swatch i-m"></span>TEX_forward.m</span><span class="who-p"><span class="swatch i-p"></span>baysparpy/tex_forward.py</span><span class="who-b"><span class="swatch i-b"></span>bayspar/predict.py · predict_tex</span></div>
+    <p class="lede">The calibration run the other way: given temperatures, what TEX₈₆ would the sediment record? Used for proxy system modelling and data assimilation. No prior and no inversion, just the regression and its noise.</p>
+  </header>
+
+  <section class="block">
+    <header><p class="eyebrow">The math</p><h2>Draw from the regression</h2></header>
+    <div class="formula">
+      <div class="row"><span class="lab">For each draw m</span><span class="math">TEX<sub>86</sub> ~ <span class="up">N</span>(α<sub>m</sub> + β<sub>m</sub> T, τ<sub>m</sub>²)</span></div>
+      <div class="row"><span class="lab">Then</span><span class="math"><span class="up">keep 1,000 random draws; clip to [0, 1]</span></span></div>
+    </div>
+    <div class="two">
+      <div class="fig">
+        <h3>The forward curve at the Lopes dos Santos site</h3>
+        <p class="sub">5th, 50th and 95th percentiles of BAYSPARpy's forward ensemble from −2 to 36 °C. Dots are the means of each implementation's 1,000 values at 22, 25 and 28 °C. TEX₈₆ is a ratio, so values outside [0, 1] are clipped; none needed clipping in this range.</p>
+        <div class="legend"><span><i class="band" style="background:color-mix(in srgb,var(--p) 18%,transparent)"></i>BAYSPARpy 5–95%</span><span class="i-m"><i class="dot"></i>MATLAB</span><span class="i-p"><i class="dot"></i>BAYSPARpy</span><span class="i-b"><i class="dot"></i>brews/baysparpy</span></div>
+        <div class="chart" id="ch-fcurve"></div>
+      </div>
+      <div class="fig">
+        <h3>The three ensembles at 22, 25 and 28 °C</h3>
+        <p class="sub">Histograms of the 1,000 TEX₈₆ values from each implementation. MATLAB's came from the original <code>TEX_forward.m</code>; brews/baysparpy was run with <code>nens=1000</code>.</p>
+        <div class="legend"><span class="i-m"><i></i>MATLAB</span><span class="i-p"><i></i>BAYSPARpy</span><span class="i-b"><i></i>brews/baysparpy</span></div>
+        <div class="chart" id="ch-fhist"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <header><p class="eyebrow">Line by line</p><h2>Five steps, three implementations</h2></header>
+    <div class="compare-ctl" data-ctl>Show:
+      <label class="i-m"><input type="checkbox" data-impl="M" checked>MATLAB</label>
+      <label class="i-p"><input type="checkbox" data-impl="P" checked>BAYSPARpy</label>
+      <label class="i-b"><input type="checkbox" data-impl="B" checked>brews/baysparpy</label>
+    </div>
+    <div class="stages">
+<!--stage
+id: fw-args
+title: Arguments
+M: TEX_forward.m:1+11-32 | ref | <code>(lat, lon, t, runname, type, stol)</code>: latitude first, the reverse of <code>bayspar_tex</code>.
+P: tex_forward.py:13-16+48-51 | equiv | MATLAB's order and its error messages, with keywords (TXF-01).
+B: predict.py:73 | diff | <code>(seatemp, lat, lon, temptype, nens=5000)</code>. Standard mode only.
+-->
+<!--stage
+id: fw-cell
+title: Pick the parameters for the site
+M: TEX_forward.m:54-62 | ref | One cell per location. With several locations, temperature i pairs with location i.
+P: tex_forward.py:63-80 | equiv | The same pairing, made explicit: one location for a whole series, one temperature per location, or an error that says which (TXF-03).
+B: predict.py:98-109 | diff | One location only, and the first <code>nens</code> of its 10,000 draws.
+-->
+<!--stage
+id: fw-analog
+title: Analogue mode
+M: TEX_forward.m:63-85:hl=70 | ref | Searches cell-mean temperature (<code>Target_Stack</code>), so <code>stol</code> is in °C here but in TEX₈₆ units in <code>bayspar_tex_analog</code>.
+P: tex_forward.py:81-95 | same | The same search on <code>target_t</code>, with τ² paired correctly unless <code>mode="matlab"</code> (TXF-04, TXF-05).
+B: none | missing | There is no analogue forward model.
+-->
+<!--stage
+id: fw-draw
+title: Draw TEX₈₆
+M: TEX_forward.m:88-89 | ref | All 20,000 draws at once with <code>normrnd</code>.
+P: tex_forward.py:97 | equiv | All 20,000 draws by default; <code>n_draws</code> thins them first if asked (TXF-05, TXF-06).
+B: predict.py:112-117 | equiv | A Python loop over <code>nens</code> draws.
+-->
+<!--stage
+id: fw-out
+title: Subsample and clip
+M: TEX_forward.m:90-96 | ref | Keeps 1,000 random columns, then forces every value into [0, 1].
+P: tex_forward.py:98-109 | changed | <code>n_out</code> columns, 1,000 by default; clipped, with the clipped fraction recorded in metadata (TXF-07, TXF-08).
+B: predict.py:119-123 | diff | Returns all <code>nens</code> columns and does not clip, so values below 0 or above 1 can come back.
+-->
+    </div>
+  </section>
+</div>
+
+<!-- ===================================================================== DISTANCE -->
+<div class="view wrap" id="v-distance" data-view="distance" hidden>
+  <header class="vhead">
+    <p class="eyebrow">Geometry · used by the prior-mean search and the boundary tie-break</p>
+    <h1>EarthChordDistances_2</h1>
+    <div class="provenance"><span class="who-m"><span class="swatch i-m"></span>EarthChordDistances_2.m</span><span class="who-p"><span class="swatch i-p"></span>baysparpy/distance.py</span><span class="who-b"><span class="swatch i-b"></span>bayspar/observations/core.py · chord_distance</span></div>
+    <p class="lede">The straight-line distance between two points on a sphere of radius 6,378.137 km, through the Earth rather than along its surface. It decides which modern temperatures count as within 500 km.</p>
+  </header>
+
+  <section class="block">
+    <header><p class="eyebrow">The math</p><h2>Haversine half-angle, then the chord</h2></header>
+    <div class="formula">
+      <div class="row"><span class="lab">Half the central angle</span><span class="math">a = arcsin √( sin²(Δφ/2) + cos φ₁ cos φ₂ sin²(Δλ/2) )</span></div>
+      <div class="row"><span class="lab">Chord</span><span class="math">c = 2R sin a</span></div>
+      <div class="row"><span class="lab">For comparison, the arc</span><span class="math">s = 2R a</span></div>
+    </div>
+    <div class="fig">
+      <h3>Chord against arc</h3>
+      <p class="sub">Drag to change the separation. At the 500 km search radius the two differ by about 13 metres, so the choice never changes which cells are averaged in practice.</p>
+      <div class="controls"><label for="cd-d"><span>Arc distance (km) <output id="cd-do"></output></span><input type="range" id="cd-d" min="50" max="20000" step="50" value="500"></label></div>
+      <div class="chart" id="ch-chord"></div>
+      <div class="readout" id="cd-read"></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <header><p class="eyebrow">Line by line</p><h2>One formula, three spellings</h2></header>
+    <div class="compare-ctl" data-ctl>Show:
+      <label class="i-m"><input type="checkbox" data-impl="M" checked>MATLAB</label>
+      <label class="i-p"><input type="checkbox" data-impl="P" checked>BAYSPARpy</label>
+      <label class="i-b"><input type="checkbox" data-impl="B" checked>brews/baysparpy</label>
+    </div>
+    <div class="stages">
+<!--stage
+id: dist-formula
+title: The formula
+M: EarthChordDistances_2.m:10-22 | ref | Builds an (N·M) × 4 matrix of every pair with <code>kron</code>, then reshapes it to N × M.
+P: distance.py:27-38 | same | Broadcasting instead of <code>kron</code>, with the same terms in the same order (ECD-01 to ECD-05). Inputs are (lon, lat), as in MATLAB.
+B: observations/core.py:74-97 | same | A direct translation, <code>kron</code> included, taking (lat, lon). <span id="dist-eq"></span>
+-->
+<!--stage
+id: dist-call
+title: How the prior-mean search calls it
+M: bayspar_tex.m:112 | ref | One site against all 37,686 climatology cells.
+P: stores.py:178 | same | The same call; the result is one row of 37,686 distances.
+B: observations/core.py:121-125 | same | Flips the stored (lon, lat) columns to (lat, lon) before calling. Same distances.
+-->
+    </div>
+  </section>
+</div>
+
+<!-- ===================================================================== DRAWS -->
+<div class="view wrap" id="v-draws" data-view="draws" hidden>
+  <header class="vhead">
+    <p class="eyebrow">Shared machinery · used by every prediction</p>
+    <h1>Draws &amp; percentiles</h1>
+    <div class="provenance"><span class="who-m"><span class="swatch i-m"></span>round(linspace(…)) · prctile</span><span class="who-p"><span class="swatch i-p"></span>baysparpy/utils.py</span><span class="who-b"><span class="swatch i-b"></span>loop index · Prediction.percentile</span></div>
+    <p class="lede">Three small choices sit between the fitted model and the numbers a user sees: which posterior draws are used, how the 5th, 50th and 95th percentiles are computed, and where the random numbers come from. The ports make them differently.</p>
+  </header>
+
+  <section class="block">
+    <header><p class="eyebrow">Which draws</p><h2>Spread across the chain, or one block of it</h2></header>
+    <div class="fig">
+      <h3>α for the Lopes dos Santos cell, all 20,000 draws</h3>
+      <p class="sub">Every 10th draw plotted. Ticks under the trace mark the 1,000 draws MATLAB and BAYSPARpy use. brews/baysparpy ships only the shaded second half and, at 1,000 draws, uses its first 1,000 (the darker band).</p>
+      <div class="legend"><span class="i-m"><i></i>draws used by MATLAB and BAYSPARpy</span><span class="i-b"><i class="band" style="background:color-mix(in srgb,var(--b) 16%,transparent)"></i>brews/baysparpy's 10,000</span><span class="i-b"><i class="band" style="background:color-mix(in srgb,var(--b) 45%,transparent)"></i>its default window at 1,000</span></div>
+      <div class="chart" id="ch-trace"></div>
+      <div class="readout" id="tr-read"></div>
+    </div>
+    <div class="panel">
+      <h3>What each choice moves the median by</h3>
+      <p class="sub" style="margin:0 0 10px;color:var(--muted)">Lopes dos Santos, 193 samples, BAYSPARpy's solver with one fixed seed so only the named choice changes. °C, mean and largest absolute change in the posterior median.</p>
+      <div class="tablewrap"><table class="tnum" id="t-effects"></table></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <header><p class="eyebrow">Which percentile</p><h2>Three definitions of the 5th percentile</h2></header>
+    <div class="fig">
+      <h3>Percentiles of the numbers 1 to 10</h3>
+      <p class="sub">MATLAB's <code>prctile</code> places sample i at (i − 0.5)/n and interpolates (Hazen). NumPy's default places it at (i − 1)/(n − 1). brews/baysparpy uses 'nearest', which snaps to a sample. Move the slider to compare.</p>
+      <div class="controls"><label for="pc-q"><span>Percentile <output id="pc-qo"></output></span><input type="range" id="pc-q" min="0" max="100" step="1" value="5"></label></div>
+      <div class="chart" id="ch-pct"></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <header><p class="eyebrow">Line by line</p><h2>Three steps, three implementations</h2></header>
+    <div class="compare-ctl" data-ctl>Show:
+      <label class="i-m"><input type="checkbox" data-impl="M" checked>MATLAB</label>
+      <label class="i-p"><input type="checkbox" data-impl="P" checked>BAYSPARpy</label>
+      <label class="i-b"><input type="checkbox" data-impl="B" checked>brews/baysparpy</label>
+    </div>
+    <div class="stages">
+<!--stage
+id: dr-thin
+title: Thinning
+M: bayspar_tex.m:84-89 | ref | <code>round(linspace(1, 20000, 1000))</code>: every 20th draw. MATLAB's <code>round</code> sends halves away from zero.
+P: utils.py:39+55-59 | same | <code>floor(x + 0.5)</code> to match MATLAB's rounding, then 0-based. Tested at 999, 1,000 and 1,001 draws, where rounding matters (BT-06).
+B: predict.py:158-161+176-179 | diff | Checks <code>nens</code> against its 10,000, then uses draws 0 … nens−1 in order. Never thins.
+-->
+<!--stage
+id: dr-pct
+title: Percentiles
+M: bayspar_tex.m:156 | ref | Hazen plotting positions.
+P: utils.py:62+76-77 | same | <code>method="hazen"</code>, with the percentile axis moved last to match MATLAB's layout.
+B: predict.py:45+64-70 | diff | 'nearest' by default, through a keyword NumPy 2 no longer accepts.
+-->
+<!--stage
+id: dr-rng
+title: Random numbers
+M: bayspar_tex.m:153 ; TEX_forward.m:89-92 | ref | <code>randn</code>, <code>normrnd</code> and <code>randsample</code> all draw from the global stream.
+P: bayspar_tex.py:72 ; tex_forward.py:97+101 | changed | A <code>Generator</code> per call, passed explicitly. Equivalence with MATLAB is therefore statistical, never draw for draw (GEN-03).
+B: utils.py:42 ; predict.py:116-117 | equiv | <code>np.random</code>'s global state, as MATLAB.
+-->
+    </div>
+  </section>
+</div>
+
+<!-- ===================================================================== DATA -->
+<div class="view wrap" id="v-data" data-view="data" hidden>
+  <header class="vhead">
+    <p class="eyebrow">Inputs · the fitted model and the modern observations</p>
+    <h1>Data &amp; loading</h1>
+    <div class="provenance"><span class="who-m"><span class="swatch i-m"></span>ModelOutput/*.mat</span><span class="who-p"><span class="swatch i-p"></span>baysparpy/stores.py</span><span class="who-b"><span class="swatch i-b"></span>bayspar/modelparams, bayspar/observations</span></div>
+    <p class="lede">All three read the same fitted model, but from different places, at different times, and in different amounts.</p>
+  </header>
+
+  <section class="block">
+    <div class="panel tablewrap">
+      <table>
+        <thead><tr><th>Contents</th><th>File in <code>ModelOutput/</code></th><th class="num">Shape</th><th>Used by</th></tr></thead>
+        <tbody>
+          <tr><td>α, β per cell; τ² shared; cell centres</td><td><code>Output_SpatAg_SST/params_standard.mat</code></td><td class="num">162 × 20,000</td><td>Standard mode, forward model. brews/baysparpy ships columns 10,001–20,000 of it, one variable per file.</td></tr>
+          <tr><td>The same, for the 80 cells with coretops</td><td><code>Output_SpatAg_SST/params_analog.mat</code></td><td class="num">80 × 20,000</td><td>MATLAB's analogue mode. Bit-identical to 80 rows of the standard file, so neither port reads it.</td></tr>
+          <tr><td>Modern 1° sea-surface temperature</td><td><code>obsSST.mat</code></td><td class="num">37,686 cells</td><td>The prior-mean search. brews/baysparpy's copy is identical.</td></tr>
+          <tr><td>Coretop TEX₈₆ and target temperatures, by cell</td><td><code>Data_Input_SpatAg_SST.mat</code></td><td class="num">80 cells</td><td>Analogue selection.</td></tr>
+        </tbody>
+      </table>
+      <p class="callout">Each file has a subT twin for subsurface (0–200 m) temperature.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <header><p class="eyebrow">Line by line</p><h2>Three steps, three implementations</h2></header>
+    <div class="compare-ctl" data-ctl>Show:
+      <label class="i-m"><input type="checkbox" data-impl="M" checked>MATLAB</label>
+      <label class="i-p"><input type="checkbox" data-impl="P" checked>BAYSPARpy</label>
+      <label class="i-b"><input type="checkbox" data-impl="B" checked>brews/baysparpy</label>
+    </div>
+    <div class="stages">
+<!--stage
+id: data-find
+title: Where the files are
+M: bayspar_tex.m:61-63 | ref | Paths relative to the working directory, so MATLAB has to run from the repository root.
+P: stores.py:26+38-53 | changed | <code>$BAYSPAR_MODELOUTPUT</code> if set, otherwise the first <code>ModelOutput/</code> above the package.
+B: modelparams/core.py:13-31 ; observations/core.py:21-35 | diff | Copies inside the installed package, split one variable per file.
+-->
+<!--stage
+id: data-when
+title: When they are read
+M: bayspar_tex.m:61-70 | ref | On every call.
+P: stores.py:56-58 | changed | Once per file per process (<code>lru_cache</code>). A repeat call takes about 0.1 ms.
+B: modelparams/core.py:83-101 | diff | All of it at import (about 1.2 s), then a deep copy of 26 MB on every call (about 4 ms).
+-->
+<!--stage
+id: data-analog
+title: One parameter file or two
+M: bayspar_tex_analog.m:61-62 | ref | Loads <code>params_analog.mat</code>, a second 24 MB file.
+P: stores.py:284-304 | changed | Maps the 80 coretop cells to their rows in the standard store. The audit shows the rows are identical (STO-01).
+B: predict.py:247 ; modelparams/core.py:62-68 | equiv | Looks each analogue cell up in the standard store by location, which reaches the same rows.
+-->
+    </div>
+  </section>
+</div>
+</main>
+
+<script>
+const D = /*DATA*/null;
+const NS = "http://www.w3.org/2000/svg";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const fmt = (v, d = 2) => Number(v).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+const IMPLS = [["MATLAB", "m", "MATLAB"], ["BAYSPARpy", "p", "BAYSPARpy"], ["brews", "b", "brews/baysparpy"]];
+
+function S(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) if (v !== undefined && v !== null) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function T(parent, x, y, text, attrs = {}) { const t = S("text", { x, y, ...attrs }, parent); t.textContent = text; return t; }
+function lin(d0, d1, r0, r1) { const f = v => r0 + (v - d0) / (d1 - d0) * (r1 - r0); f.d = [d0, d1]; f.r = [r0, r1]; return f; }
+function logS(d0, d1, r0, r1) { const a = Math.log10(d0), b = Math.log10(d1); const f = v => r0 + (Math.log10(v) - a) / (b - a) * (r1 - r0); f.d = [d0, d1]; return f; }
+function niceTicks(a, b, n = 5) {
+  const span = b - a, step0 = span / n, mag = 10 ** Math.floor(Math.log10(step0));
+  const step = [1, 2, 2.5, 5, 10].map(s => s * mag).find(s => span / s <= n) || mag * 10;
+  const out = []; for (let v = Math.ceil(a / step) * step; v <= b + 1e-9; v += step) out.push(+v.toFixed(10));
+  return out;
+}
+function frame(el, h) {
+  el.innerHTML = "";
+  const w = Math.max(280, el.clientWidth || 600);
+  const svg = S("svg", { viewBox: `0 0 ${w} ${h}`, width: w, height: h, role: "img" }, el);
+  return { svg, w, h };
+}
+function axisX(g, x, y0, ticks, f = v => v, label) {
+  const a = S("g", { class: "axis" }, g);
+  S("line", { x1: x.r[0], x2: x.r[1], y1: y0, y2: y0 }, a);
+  ticks.forEach(t => { S("line", { x1: x(t), x2: x(t), y1: y0, y2: y0 + 4 }, a); T(a, x(t), y0 + 16, f(t), { "text-anchor": "middle" }); });
+  if (label) T(a, (x.r[0] + x.r[1]) / 2, y0 + 33, label, { "text-anchor": "middle", class: "lbl" });
+}
+function axisY(g, y, x0, x1, ticks, f = v => v, label) {
+  const gr = S("g", { class: "grid" }, g);
+  ticks.forEach(t => { S("line", { x1: x0, x2: x1, y1: y(t), y2: y(t) }, gr); T(gr, x0 - 6, y(t) + 4, f(t), { "text-anchor": "end" }); });
+  if (label) T(g, x0 - 40, (y.r[0] + y.r[1]) / 2, label, { "text-anchor": "middle", class: "lbl", transform: `rotate(-90 ${x0 - 40} ${(y.r[0] + y.r[1]) / 2})` });
+}
+const path = (xs, ys, x, y) => xs.map((v, i) => `${i ? "L" : "M"}${x(v).toFixed(1)},${y(ys[i]).toFixed(1)}`).join("");
+function normPdf(v, mu, sd) { return Math.exp(-0.5 * ((v - mu) / sd) ** 2) / (sd * Math.sqrt(2 * Math.PI)); }
+
+/* ---------------------------------------------------------------- overview */
+function agreeTable(id, sec, unit) {
+  const t = $(id);
+  const s = D[sec].summary;
+  let h = `<thead><tr><th>Implementation</th><th class="num">5th</th><th class="num">50th</th><th class="num">95th</th></tr></thead><tbody>`;
+  IMPLS.forEach(([k, c, n]) => {
+    h += `<tr><td class="who-${c}"><span class="swatch i-${c}"></span>${n}</td>` + s[k].map(v => `<td class="num">${fmt(v, 2)}</td>`).join("") + "</tr>";
+  });
+  t.innerHTML = h + "</tbody>";
+}
+function overview() {
+  agreeTable("#t-agree-std", "standard");
+  agreeTable("#t-agree-an", "analog");
+  const st = D.standard;
+  $("#c-agree-std").innerHTML = `Median across samples, °C. Against MATLAB, the posterior median differs by ${fmt(st.meandiff50.BAYSPARpy, 3)} °C on average for BAYSPARpy and ${fmt(st.meandiff50.brews, 3)} °C for brews/baysparpy. Rerunning BAYSPARpy with a different seed moves it by ${fmt(st.mc_floor50, 3)} °C. Prior mean: ${fmt(st.prior_mean.MATLAB, 6)} °C in all three.`;
+  const an = D.analog;
+  $("#c-agree-an").innerHTML = `Median across samples, °C. All three select the same ${an.n_sel} of 80 cells. BAYSPARpy runs with <code>mode="matlab"</code> here; its default, which pairs τ² correctly, moves the median by ${fmt(an.pairing_diff[1], 3)} °C, less than a reseed (${fmt(an.pairing_mc[1], 3)} °C).`;
+  $("#prov").innerHTML = `<p><b>How this page was made.</b> The MATLAB column is the original <code>.m</code> files run unmodified in ${D.meta.engine} (${D.meta.generated}), saved to <code>docs/BAYSPARpy/audit/original_matlab.mat</code>. BAYSPARpy ${D.meta.ours} and brews/baysparpy 0.0.3 were run on the same inputs with NumPy ${D.meta.numpy}, seed 0, 1,000 draws. Code excerpts are pulled from the files with their real line numbers. IDs such as BT-08 refer to <code>docs/BAYSPARpy/PORTING.md</code>.</p><p>Random draws differ between implementations, so agreement is statistical: compare differences with the reseed figure, not with zero.</p>`;
+}
+
+/* ---------------------------------------------------------------- results chart (standard & analogue) */
+function resultsChart(el, sec, xKey, xLabel, priorMean) {
+  const R = D[sec], xs = R[xKey];
+  const { svg, w } = frame(el, 400);
+  const m = { l: 56, r: 14, t: 8 }, h1 = 250, h2top = 290, h2 = 360;
+  const all = [].concat(...IMPLS.map(([k]) => R[k].flatMap(r => [r[0], r[2]])));
+  const ylo = Math.floor(Math.min(...all)), yhi = Math.ceil(Math.max(...all));
+  const x = lin(Math.min(...xs), Math.max(...xs), m.l, w - m.r);
+  const y = lin(ylo, yhi, h1, m.t);
+  axisY(svg, y, m.l, w - m.r, niceTicks(ylo, yhi, 5), v => v, "°C");
+  const band = xs.map((v, i) => `${i ? "L" : "M"}${x(v).toFixed(1)},${y(R.MATLAB[i][2]).toFixed(1)}`).join("") +
+    xs.slice().reverse().map((v, j) => { const i = xs.length - 1 - j; return `L${x(v).toFixed(1)},${y(R.MATLAB[i][0]).toFixed(1)}`; }).join("") + "Z";
+  S("path", { d: band, fill: "var(--m)", "fill-opacity": .14, stroke: "none" }, svg);
+  S("line", { x1: m.l, x2: w - m.r, y1: y(priorMean), y2: y(priorMean), stroke: "var(--faint)", "stroke-dasharray": "5 3", "stroke-width": 1.2 }, svg);
+  IMPLS.forEach(([k, c]) => S("path", { d: path(xs, R[k].map(r => r[1]), x, y), fill: "none", stroke: `var(--${c})`, "stroke-width": k === "MATLAB" ? 3.2 : 1.4, "stroke-linejoin": "round" }, svg));
+  // difference panel
+  const diffs = ["BAYSPARpy", "brews"].flatMap(k => R[k].map((r, i) => r[1] - R.MATLAB[i][1]));
+  const dm = Math.max(0.5, Math.ceil(Math.max(...diffs.map(Math.abs)) * 2) / 2);
+  const yd = lin(-dm, dm, h2, h2top);
+  axisY(svg, yd, m.l, w - m.r, [-dm, 0, dm], v => (v > 0 ? "+" : "") + v, "Δ °C");
+  S("line", { x1: m.l, x2: w - m.r, y1: yd(0), y2: yd(0), stroke: "var(--m)", "stroke-width": 2 }, svg);
+  [["BAYSPARpy", "p"], ["brews", "b"]].forEach(([k, c]) =>
+    S("path", { d: path(xs, R[k].map((r, i) => r[1] - R.MATLAB[i][1]), x, yd), fill: "none", stroke: `var(--${c})`, "stroke-width": 1.3 }, svg));
+  axisX(svg, x, h2 + 4, niceTicks(x.d[0], x.d[1], Math.max(3, Math.floor(w / 110))), v => v, xLabel);
+  svg.setAttribute("viewBox", `0 0 ${w} 405`); svg.setAttribute("height", 405);
+}
+
+/* ---------------------------------------------------------------- conjugate widget */
+function conjugate(el) {
+  const md = D.draws.median, mu0 = D.standard.prior_mean.BAYSPARpy;
+  const xIn = $("#cj-x"), sIn = $("#cj-s");
+  if (!xIn.dataset.init) {
+    const sorted = D.standard.tex.slice().sort((a, b) => a - b);
+    xIn.value = sorted[Math.floor(sorted.length / 2)].toFixed(3);
+    xIn.dataset.init = 1;
+    xIn.oninput = sIn.oninput = () => conjugate(el);
+  }
+  const xv = +xIn.value, s0 = +sIn.value;
+  $("#cj-xo").textContent = xv.toFixed(3); $("#cj-so").textContent = s0.toFixed(1);
+  const tau = Math.sqrt(md.tau2), b = md.beta, a = md.alpha;
+  const lMu = (xv - a) / b, lSd = tau / b;
+  const lam = 1 / s0 ** 2 + b * b / md.tau2, pMu = (mu0 / s0 ** 2 + b * (xv - a) / md.tau2) / lam, pSd = 1 / Math.sqrt(lam);
+  const { svg, w, h } = frame(el, 250);
+  const m = { l: 16, r: 16, t: 10, b: 40 };
+  const x = lin(0, 45, m.l, w - m.r);
+  const ts = Array.from({ length: 301 }, (_, i) => i * 45 / 300);
+  const curves = [[mu0, s0], [lMu, lSd], [pMu, pSd]].map(([mu, sd]) => ts.map(t => normPdf(t, mu, sd)));
+  const ymax = Math.max(...curves.flat()) * 1.08;
+  const y = lin(0, ymax, h - m.b, m.t);
+  S("path", { d: path(ts, curves[2], x, y) + `L${x(45)},${y(0)}L${x(0)},${y(0)}Z`, fill: "var(--ink)", "fill-opacity": .1 }, svg);
+  S("path", { d: path(ts, curves[0], x, y), fill: "none", stroke: "var(--faint)", "stroke-width": 1.6, "stroke-dasharray": "5 3" }, svg);
+  S("path", { d: path(ts, curves[1], x, y), fill: "none", stroke: "var(--muted)", "stroke-width": 1.6 }, svg);
+  S("path", { d: path(ts, curves[2], x, y), fill: "none", stroke: "var(--ink)", "stroke-width": 2.4 }, svg);
+  S("line", { x1: x(pMu), x2: x(pMu), y1: y(0), y2: y(Math.max(...curves[2])), stroke: "var(--ink)", "stroke-width": 1 }, svg);
+  axisX(svg, x, h - m.b, niceTicks(0, 45, 9), v => v, "Temperature (°C)");
+  $("#cj-read").innerHTML = `<span>α <b>${a.toFixed(4)}</b></span><span>β <b>${b.toFixed(5)}</b></span><span>τ <b>${tau.toFixed(4)}</b></span><span>prior <b>${fmt(mu0, 2)} ± ${s0.toFixed(1)}</b></span><span>likelihood <b>${fmt(lMu, 2)} ± ${fmt(lSd, 2)}</b></span><span>posterior <b>${fmt(pMu, 2)} ± ${fmt(pSd, 2)} °C</b></span>`;
+}
+
+/* ---------------------------------------------------------------- ocean mask */
+let OCEAN = null;
+function ocean() {
+  if (OCEAN) return OCEAN;
+  const bin = atob(D.ocean), bits = new Uint8Array(180 * 360);
+  for (let i = 0; i < bin.length; i++) { const byte = bin.charCodeAt(i); for (let k = 0; k < 8; k++) bits[i * 8 + k] = (byte >> (7 - k)) & 1; }
+  return (OCEAN = bits);
+}
+// land as horizontal runs of 1° cells, within a lon/lat window
+function landRuns(lon0, lon1, lat0, lat1) {
+  const o = ocean(), runs = [];
+  for (let r = 0; r < 180; r++) {
+    const latTop = 90 - r; if (latTop - 1 >= lat1 || latTop <= lat0) continue;
+    let start = null;
+    for (let c = 0; c <= 360; c++) {
+      const lonL = c - 180, land = c < 360 && !o[r * 360 + c] && lonL + 1 > lon0 && lonL < lon1;
+      if (land && start === null) start = lonL;
+      if (!land && start !== null) { runs.push([start, lonL, latTop - 1, latTop]); start = null; }
+    }
+  }
+  return runs;
+}
+
+/* ---------------------------------------------------------------- prior map */
+function priorMap(el) {
+  const P = D.prior, [slon, slat] = D.standard.site;
+  const lon0 = -32, lon1 = 2, lat0 = -12, lat1 = 22;
+  const w0 = Math.min(el.clientWidth || 600, 620);
+  const scale = (w0 - 50) / (lon1 - lon0), h = (lat1 - lat0) * scale + 30;
+  el.innerHTML = "";
+  const svg = S("svg", { viewBox: `0 0 ${w0} ${h}`, width: w0, height: h, role: "img" }, el);
+  const x = lin(lon0, lon1, 40, w0 - 10), y = lin(lat0, lat1, h - 24, 6);
+  S("rect", { x: x(lon0), y: y(lat1), width: x(lon1) - x(lon0), height: y(lat0) - y(lat1), fill: "var(--surface)" }, svg);
+  landRuns(lon0, lon1, lat0, lat1).forEach(([a, b, c, d]) =>
+    S("rect", { x: x(Math.max(a, lon0)), y: y(Math.min(d, lat1)), width: x(Math.min(b, lon1)) - x(Math.max(a, lon0)) + .4, height: y(Math.max(c, lat0)) - y(Math.min(d, lat1)) + .4, fill: "var(--land)" }, svg));
+  P.pts.forEach(([lo, la, v, d]) => {
+    if (lo < lon0 || lo > lon1 || la < lat0 || la > lat1) return;
+    const inside = d < P.max_dist;
+    S("circle", { cx: x(lo), cy: y(la), r: Math.max(1.6, scale * .2), fill: inside ? "var(--ink)" : "none", stroke: inside ? "none" : "var(--faint)", "stroke-width": .8 }, svg);
+  });
+  // 20° calibration cell centred on (-10, 0)
+  S("rect", { x: x(-20), y: y(10), width: x(0) - x(-20), height: y(-10) - y(10), fill: "none", stroke: "var(--m)", "stroke-width": 1.6, "stroke-dasharray": "7 4" }, svg);
+  S("circle", { cx: x(-10), cy: y(0), r: 3.5, fill: "var(--m)" }, svg);
+  T(svg, x(-10) + 7, y(0) + 4, "cell centre (10° W, 0°)", { class: "lbl" });
+  // 500 km circle, approximate on an equirectangular plot
+  const ry = 500 / 110.57, rx = 500 / (111.32 * Math.cos(slat * Math.PI / 180));
+  S("ellipse", { cx: x(slon), cy: y(slat), rx: x(slon + rx) - x(slon), ry: y(slat) - y(slat + ry), fill: "none", stroke: "var(--p)", "stroke-width": 1.6 }, svg);
+  S("path", { d: `M${x(slon) - 6},${y(slat)}h12M${x(slon)},${y(slat) - 6}v12`, stroke: "var(--crimson)", "stroke-width": 2.2 }, svg);
+  T(svg, x(slon + rx) + 6, y(slat) - 6, "core site, 500 km", { class: "lbl" });
+  const g = S("g", { class: "axis" }, svg);
+  [-30, -20, -10, 0].forEach(v => T(g, x(v), h - 8, v === 0 ? "0°" : `${-v}° W`, { "text-anchor": "middle" }));
+  [-10, 0, 10, 20].forEach(v => T(g, 34, y(v) + 4, v === 0 ? "0°" : `${Math.abs(v)}° ${v > 0 ? "N" : "S"}`, { "text-anchor": "end" }));
+  $("#pm-n").textContent = P.n_below;
+}
+
+/* ---------------------------------------------------------------- timing */
+function timing(el) {
+  const Tm = D.timing;
+  const { svg, w, h } = frame(el, 260);
+  const m = { l: 60, r: 70, t: 12, b: 44 };
+  const x = logS(20, 500, m.l, w - m.r), y = logS(0.001, 10, h - m.b, m.t);
+  axisY(svg, y, m.l, w - m.r, [0.001, 0.01, 0.1, 1, 10], v => v >= 1 ? `${v} s` : `${v * 1000} ms`);
+  axisX(svg, x, h - m.b, Tm.N, v => v, "Samples in the record (N)");
+  [["BAYSPARpy", "p"], ["brews", "b"]].forEach(([k, c]) => {
+    S("path", { d: path(Tm.N, Tm[k], x, y), fill: "none", stroke: `var(--${c})`, "stroke-width": 2 }, svg);
+    Tm.N.forEach((n, i) => S("circle", { cx: x(n), cy: y(Tm[k][i]), r: 3.5, fill: `var(--${c})` }, svg));
+  });
+  const last = Tm.N.length - 1, ratio = Tm.brews[last] / Tm.BAYSPARpy[last];
+  T(svg, x(Tm.N[last]) + 8, y(Tm.brews[last]) + 4, `${fmt(Tm.brews[last], 1)} s`, { class: "lbl" });
+  T(svg, x(Tm.N[last]) + 8, y(Tm.BAYSPARpy[last]) + 4, `${fmt(Tm.BAYSPARpy[last] * 1000, 0)} ms`, { class: "lbl" });
+  T(svg, x(Tm.N[last]) + 8, (y(Tm.brews[last]) + y(Tm.BAYSPARpy[last])) / 2 + 4, `${Math.round(ratio)}×`, { class: "lbl", "font-size": 15 });
+}
+
+/* ---------------------------------------------------------------- analogue strip */
+function strip(el) {
+  const A = D.analog;
+  $("#an-mean").textContent = A.tex_mean.toFixed(4); $("#an-tol").textContent = A.tol.toFixed(4); $("#an-nsel").textContent = `${A.n_sel} of 80`;
+  const { svg, w, h } = frame(el, 230);
+  const m = { l: 14, r: 14, t: 26, b: 42 };
+  const vals = A.cells.map(c => c[2]);
+  const x = lin(Math.floor(Math.min(...vals) * 10) / 10, Math.ceil(Math.max(...vals) * 10) / 10, m.l, w - m.r);
+  const lo = A.tex_mean - A.tol, hi = A.tex_mean + A.tol;
+  S("rect", { x: x(lo), y: m.t, width: x(hi) - x(lo), height: h - m.b - m.t, fill: "var(--p)", "fill-opacity": .1 }, svg);
+  S("line", { x1: x(A.tex_mean), x2: x(A.tex_mean), y1: m.t, y2: h - m.b, stroke: "var(--ink)", "stroke-width": 1.4 }, svg);
+  T(svg, x(A.tex_mean), m.t - 8, "sample mean ± search_tol", { "text-anchor": "middle", class: "lbl" });
+  // simple dodge: stack dots that collide horizontally
+  const r = 4.2, placed = [];
+  A.cells.slice().sort((a, b) => a[2] - b[2]).forEach(c => {
+    const cx = x(c[2]); let lvl = 0;
+    while (placed.some(p => Math.abs(p[0] - cx) < 2 * r && p[1] === lvl)) lvl++;
+    placed.push([cx, lvl]);
+    const cy = h - m.b - 8 - lvl * (2 * r + 1);
+    S("circle", { cx, cy, r, fill: c[3] ? "var(--ink)" : "var(--surface)", stroke: c[3] ? "none" : "var(--faint)", "stroke-width": 1.1 }, svg);
+  });
+  axisX(svg, x, h - m.b, niceTicks(x.d[0], x.d[1], 6), v => v.toFixed(1), "Mean coretop TEX₈₆ in the cell");
+}
+
+/* ---------------------------------------------------------------- world map */
+function world(el) {
+  const A = D.analog;
+  const w0 = el.clientWidth || 600, sc = (w0 - 8) / 360, h = 180 * sc + 4;
+  el.innerHTML = "";
+  const svg = S("svg", { viewBox: `0 0 ${w0} ${h}`, width: w0, height: h, role: "img" }, el);
+  const x = v => 4 + (v + 180) * sc, y = v => 2 + (90 - v) * sc;
+  S("rect", { x: x(-180), y: y(90), width: 360 * sc, height: 180 * sc, fill: "var(--surface)", stroke: "var(--line)" }, svg);
+  landRuns(-180, 180, -90, 90).forEach(([a, b, c, d]) => S("rect", { x: x(a), y: y(d), width: (b - a) * sc + .3, height: sc + .3, fill: "var(--land)" }, svg));
+  const coretop = new Set(A.cells.map(c => `${c[0]},${c[1]}`));
+  const sel = new Set(A.cells.filter(c => c[3]).map(c => `${c[0]},${c[1]}`));
+  D.draws.locs.forEach(([lo, la]) => {
+    const k = `${lo},${la}`;
+    const x0 = x(Math.max(lo - 10, -180)), x1 = x(Math.min(lo + 10, 180)), y0 = y(Math.min(la + 10, 90)), y1 = y(Math.max(la - 10, -90));
+    S("rect", { x: x0 + 1, y: y0 + 1, width: x1 - x0 - 2, height: y1 - y0 - 2, fill: sel.has(k) ? "var(--p)" : "none", "fill-opacity": .55,
+      stroke: coretop.has(k) ? (sel.has(k) ? "var(--p)" : "var(--muted)") : "var(--line)", "stroke-width": coretop.has(k) ? 1.2 : .6, "stroke-dasharray": coretop.has(k) ? null : "2 2" }, svg);
+  });
+}
+
+/* ---------------------------------------------------------------- pairing diagram */
+function pairing(el) {
+  const nA = 3, M = 4, K = nA * M;
+  const { svg, w, h } = frame(el, 190);
+  const lab = 150, cw = Math.min(46, (w - lab - 10) / K), x0 = lab;
+  const rows = [["α, β: cell · draw", k => [k % nA, Math.floor(k / nA)]], ["τ², MATLAB: draw", k => [null, k % M]], ["τ², BAYSPARpy: draw", k => [null, Math.floor(k / nA)]]];
+  const shades = [.12, .32, .55, .8];
+  T(svg, x0 - 10, 18, "flat position k", { "text-anchor": "end" });
+  for (let k = 0; k < K; k++) T(svg, x0 + k * cw + cw / 2, 18, k + 1, { "text-anchor": "middle" });
+  rows.forEach(([name, f], ri) => {
+    const yy = 30 + ri * 52;
+    T(svg, x0 - 10, yy + 26, name, { "text-anchor": "end", class: "lbl" });
+    for (let k = 0; k < K; k++) {
+      const [cell, draw] = f(k), abDraw = Math.floor(k / nA);
+      const bad = ri === 1 && draw !== abDraw;
+      S("rect", { x: x0 + k * cw + 2, y: yy + 4, width: cw - 4, height: 40, rx: 4, fill: "var(--ink)", "fill-opacity": shades[draw],
+        stroke: bad ? "var(--crimson)" : "none", "stroke-width": bad ? 2.4 : 0 }, svg);
+      const txt = cell === null ? `d${draw + 1}` : `${"ABC"[cell]}·d${draw + 1}`;
+      T(svg, x0 + k * cw + cw / 2, yy + 29, txt, { "text-anchor": "middle", fill: draw >= 2 ? "var(--bg)" : "var(--ink)", style: `fill:${draw >= 2 ? "var(--surface)" : "var(--ink)"};font-size:${cw < 40 ? 9.5 : 11}px` });
+    }
+  });
+  const A = D.analog;
+  $("#an-pairnote").innerHTML = `Measured on Wilson Lake (24 cells, 1,000 draws, same seed): switching from MATLAB's pairing to the correct one moves the 5th, 50th and 95th percentiles by ${A.pairing_diff.map(v => fmt(v, 3)).join(", ")} °C on average. Reseeding the correct pairing moves them by ${A.pairing_mc.map(v => fmt(v, 3)).join(", ")} °C. The defect is real but its effect is below Monte-Carlo noise.`;
+}
+
+/* ---------------------------------------------------------------- forward */
+function fcurve(el) {
+  const F = D.forward, C = F.curve;
+  const { svg, w, h } = frame(el, 290);
+  const m = { l: 52, r: 14, t: 10, b: 44 };
+  const x = lin(-2, 36, m.l, w - m.r), y = lin(0.2, 1.05, h - m.b, m.t);
+  axisY(svg, y, m.l, w - m.r, [0.2, 0.4, 0.6, 0.8, 1.0], v => v.toFixed(1), "TEX₈₆");
+  S("line", { x1: m.l, x2: w - m.r, y1: y(1), y2: y(1), stroke: "var(--crimson)", "stroke-dasharray": "4 3", "stroke-width": 1.2 }, svg);
+  T(svg, w - m.r, y(1) - 5, "clip at 1", { "text-anchor": "end" });
+  const band = path(C.t, C.p.map(r => r[2]), x, y) + C.t.slice().reverse().map((t, j) => `L${x(t)},${y(C.p[C.t.length - 1 - j][0])}`).join("") + "Z";
+  S("path", { d: band, fill: "var(--p)", "fill-opacity": .16 }, svg);
+  S("path", { d: path(C.t, C.p.map(r => r[1]), x, y), fill: "none", stroke: "var(--p)", "stroke-width": 2 }, svg);
+  IMPLS.forEach(([k, c], i) => F.t.forEach((t, j) => S("circle", { cx: x(t) + (i - 1) * 7, cy: y(F.stats[k][j][0]), r: 4, fill: `var(--${c})`, stroke: "var(--surface)", "stroke-width": 1 }, svg)));
+  axisX(svg, x, h - m.b, niceTicks(-2, 36, 8), v => v, "Temperature (°C)");
+}
+function fhist(el) {
+  const F = D.forward, bins = F.bins;
+  const { svg, w } = frame(el, 300);
+  const m = { l: 34, r: 8 }, rowH = 86;
+  const x = lin(bins[0], bins[bins.length - 1], m.l, w - m.r);
+  const ymax = Math.max(...IMPLS.flatMap(([k]) => F.hist[k].flat()));
+  F.t.forEach((t, ti) => {
+    const top = 6 + ti * (rowH + 8), y = lin(0, ymax, top + rowH, top + 4);
+    S("line", { x1: m.l, x2: w - m.r, y1: top + rowH, y2: top + rowH, stroke: "var(--line)" }, svg);
+    T(svg, m.l + 2, top + 14, `${t} °C`, { class: "lbl" });
+    IMPLS.forEach(([k, c]) => {
+      const hc = F.hist[k][ti];
+      let d = `M${x(bins[0])},${y(0)}`;
+      hc.forEach((n, i) => { d += `L${x(bins[i])},${y(n)}L${x(bins[i + 1])},${y(n)}`; });
+      d += `L${x(bins[bins.length - 1])},${y(0)}`;
+      S("path", { d, fill: "none", stroke: `var(--${c})`, "stroke-width": 1.6, "stroke-linejoin": "round" }, svg);
+    });
+  });
+  axisX(svg, x, 6 + 3 * (rowH + 8) - 8, niceTicks(bins[0], bins[bins.length - 1], 7), v => v.toFixed(1), "TEX₈₆");
+  svg.setAttribute("viewBox", `0 0 ${w} 330`); svg.setAttribute("height", 330);
+}
+
+/* ---------------------------------------------------------------- chord */
+function chord(el) {
+  const R = 6378.137, inp = $("#cd-d");
+  if (!inp.dataset.init) { inp.dataset.init = 1; inp.oninput = () => chord(el); }
+  const s = +inp.value, theta = s / R, c = 2 * R * Math.sin(theta / 2);
+  $("#cd-do").textContent = fmt(s, 0);
+  const { svg, w, h } = frame(el, 260);
+  const cx = Math.min(w / 2, 170), cy = 130, rr = 105;
+  S("circle", { cx, cy, r: rr, fill: "var(--sunk)", stroke: "var(--line)" }, svg);
+  const a0 = -Math.PI / 2 - theta / 2, a1 = -Math.PI / 2 + theta / 2;
+  const p0 = [cx + rr * Math.cos(a0), cy + rr * Math.sin(a0)], p1 = [cx + rr * Math.cos(a1), cy + rr * Math.sin(a1)];
+  S("path", { d: `M${p0}A${rr},${rr} 0 ${theta > Math.PI ? 1 : 0} 1 ${p1}`, fill: "none", stroke: "var(--faint)", "stroke-width": 3 }, svg);
+  S("line", { x1: p0[0], y1: p0[1], x2: p1[0], y2: p1[1], stroke: "var(--ink)", "stroke-width": 2.2 }, svg);
+  S("path", { d: `M${p0}L${cx},${cy}L${p1}`, fill: "none", stroke: "var(--faint)", "stroke-dasharray": "3 3" }, svg);
+  [p0, p1].forEach(p => S("circle", { cx: p[0], cy: p[1], r: 4.5, fill: "var(--crimson)" }, svg));
+  const tx = Math.min(cx + rr + 30, w - 200);
+  const lines = [["arc s = Rθ", `${fmt(s, 1)} km`], ["chord c = 2R sin(θ/2)", `${fmt(c, 3)} km`], ["difference", `${fmt((s - c) * 1000, 0)} m (${fmt((s - c) / s * 100, 4)} %)`], ["central angle θ", `${fmt(theta * 180 / Math.PI, 3)}°`]];
+  if (w >= 520) lines.forEach(([k, v], i) => { T(svg, tx, 70 + i * 38, k); T(svg, tx, 70 + i * 38 + 17, v, { class: "lbl", "font-size": 14 }); });
+  $("#cd-read").innerHTML = w >= 520 ? "" : lines.map(([k, v]) => `<span>${k} <b>${v}</b></span>`).join("");
+  $("#dist-eq") && ($("#dist-eq").textContent = D.distance.max_abs_diff_vs_brews === 0 ? `Identical to BAYSPARpy, to the last bit, on all ${D.distance.n_pairs} pairs tested.` : "");
+}
+
+/* ---------------------------------------------------------------- trace */
+function trace(el) {
+  const Dr = D.draws, a = Dr.alpha_trace, n = Dr.n_total;
+  const { svg, w, h } = frame(el, 250);
+  const m = { l: 56, r: 14, t: 10, b: 62 };
+  const x = lin(1, n, m.l, w - m.r);
+  const lo = Math.min(...a), hi = Math.max(...a), pad = (hi - lo) * .05;
+  const y = lin(lo - pad, hi + pad, h - m.b, m.t);
+  S("rect", { x: x(10001), y: m.t, width: x(n) - x(10001), height: h - m.b - m.t, fill: "var(--b)", "fill-opacity": .1 }, svg);
+  S("rect", { x: x(10001), y: m.t, width: Math.max(2, x(11000) - x(10001)), height: h - m.b - m.t, fill: "var(--b)", "fill-opacity": .32 }, svg);
+  axisY(svg, y, m.l, w - m.r, niceTicks(lo - pad, hi + pad, 4), v => v.toFixed(2), "α");
+  S("path", { d: a.map((v, i) => `${i ? "L" : "M"}${x(1 + i * Dr.step).toFixed(1)},${y(v).toFixed(1)}`).join(""), fill: "none", stroke: "var(--muted)", "stroke-width": .7 }, svg);
+  // the 1,000 thinned indices
+  const ticks = S("path", { d: Array.from({ length: 1000 }, (_, i) => { const xi = x(Math.round(1 + i * (n - 1) / 999)).toFixed(1); return `M${xi},${h - m.b + 4}v8`; }).join(""), stroke: "var(--m)", "stroke-width": .6 }, svg);
+  axisX(svg, x, h - m.b + 14, [1, 5000, 10000, 15000, 20000], v => v.toLocaleString("en-US"), "Draw number in the chain");
+  const am = Dr.alpha_mean;
+  $("#tr-read").innerHTML = `<span>mean α, all 20,000 <b>${am.all.toFixed(5)}</b></span><span class="who-m">MATLAB / BAYSPARpy's 1,000 <b>${am.spread.toFixed(5)}</b></span><span class="who-b">brews/baysparpy's 1,000 <b>${am.brews.toFixed(5)}</b></span><span>draws 1–1,000 <b>${am.first.toFixed(5)}</b></span>`;
+}
+function effects() {
+  const E = D.effects;
+  const rows = [["Reseed only (the noise floor)", E.mc], ["brews/baysparpy's draws (10,001–11,000) instead of spread", E.brews_draws], ["Draws 1–1,000 instead of spread", E.first_draws], ["'nearest' percentiles instead of Hazen", E.nearest], ["brews/baysparpy's draws and 'nearest' together", E.brews_both]];
+  $("#t-effects").innerHTML = `<thead><tr><th>Change from MATLAB's choices</th><th class="num">Mean</th><th class="num">Largest</th></tr></thead><tbody>` +
+    rows.map(([k, [mu, mx]]) => `<tr><td>${k}</td><td class="num">${fmt(mu, 3)}</td><td class="num">${fmt(mx, 3)}</td></tr>`).join("") + "</tbody>";
+}
+
+/* ---------------------------------------------------------------- percentile widget */
+function roundHalfEven(v) { const f = Math.floor(v), d = v - f; if (Math.abs(d - .5) < 1e-12) return f % 2 === 0 ? f : f + 1; return Math.round(v); }
+function pctWidget(el) {
+  const inp = $("#pc-q");
+  if (!inp.dataset.init) { inp.dataset.init = 1; inp.oninput = () => pctWidget(el); }
+  const q = +inp.value / 100, n = 10, xs = Array.from({ length: n }, (_, i) => i + 1);
+  $("#pc-qo").textContent = `${inp.value}th`;
+  const interp = pos => { const p = Math.min(Math.max(pos, 1), n), i = Math.floor(p), f = p - i; return i >= n ? n : xs[i - 1] + f * (xs[i] - xs[i - 1]); };
+  const methods = [["Hazen · MATLAB, BAYSPARpy", interp(q * n + 0.5), "var(--m)"], ["linear · NumPy default", interp(1 + q * (n - 1)), "var(--faint)"], ["nearest · brews/baysparpy", xs[roundHalfEven(q * (n - 1))], "var(--b)"]];
+  const { svg, w, h } = frame(el, 200);
+  const m = { l: 14, r: 14 };
+  const x = lin(0.5, 10.5, m.l, w - m.r);
+  S("line", { x1: x(.5), x2: x(10.5), y1: 40, y2: 40, stroke: "var(--line)" }, svg);
+  xs.forEach(v => { S("circle", { cx: x(v), cy: 40, r: 6, fill: "var(--surface)", stroke: "var(--muted)", "stroke-width": 1.4 }, svg); T(svg, x(v), 22, v, { "text-anchor": "middle" }); });
+  methods.forEach(([name, v, col], i) => {
+    const yy = 82 + i * 38;
+    S("line", { x1: x(v), x2: x(v), y1: 48, y2: yy - 6, stroke: col, "stroke-width": 1, "stroke-dasharray": "2 2" }, svg);
+    S("path", { d: `M${x(v)},${yy - 6}l-6,-9h12z`, fill: col }, svg);
+    const anchor = x(v) > w * .62 ? "end" : "start", dx = anchor === "end" ? -10 : 10;
+    T(svg, x(v) + dx, yy + 4, `${name}: ${fmt(v, 2)}`, { "text-anchor": anchor, class: "lbl" });
+  });
+}
+
+/* ---------------------------------------------------------------- column toggles */
+$$("[data-ctl]").forEach(ctl => {
+  const stages = ctl.nextElementSibling;
+  ctl.addEventListener("change", () => {
+    const hide = $$("input", ctl).filter(i => !i.checked).map(i => i.dataset.impl);
+    if (hide.length === 3) { ctl.querySelector("input").checked = true; hide.shift(); }
+    $$(".tri", stages).forEach(t => { t.dataset.hide = hide.join(" "); t.style.setProperty("--cols", 3 - hide.length); });
+  });
+});
+
+/* ---------------------------------------------------------------- routing and rendering */
+const CHARTS = {
+  overview: [],
+  standard: [["#ch-conj", conjugate], ["#ch-prior", priorMap], ["#ch-std", el => resultsChart(el, "standard", "age", "Age", D.standard.prior_mean.MATLAB)], ["#ch-time", timing]],
+  analog: [["#ch-strip", strip], ["#ch-world", world], ["#ch-pair", pairing], ["#ch-an", el => resultsChart(el, "analog", "depth", "Depth", D.analog.prior_mean)]],
+  forward: [["#ch-fcurve", fcurve], ["#ch-fhist", fhist]],
+  distance: [["#ch-chord", chord]],
+  draws: [["#ch-trace", trace], ["#ch-pct", pctWidget]],
+  data: [],
+};
+let current = null;
+function render() { (CHARTS[current] || []).forEach(([sel, fn]) => { const el = $(sel); if (el) { try { fn(el); } catch (e) { console.error(sel, e); } } }); }
+function route() {
+  const id = (location.hash || "#overview").slice(1);
+  const name = CHARTS[id] ? id : "overview";
+  $$(".view").forEach(v => v.hidden = v.dataset.view !== name);
+  $$(".tabs a").forEach(a => { if (a.getAttribute("href") === `#${name}`) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+  const changed = current !== name;
+  current = name;
+  render();
+  if (changed) window.scrollTo(0, 0);
+  const tab = $(`.tabs a[href="#${name}"]`); tab && tab.scrollIntoView({ block: "nearest", inline: "nearest" });
+}
+overview();
+effects();
+window.addEventListener("hashchange", route);
+let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(render, 120); });
+route();
+</script>
