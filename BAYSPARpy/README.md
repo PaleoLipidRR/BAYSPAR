@@ -50,6 +50,42 @@ The stores read the MATLAB `ModelOutput/` directory, found by walking up from th
 by `BAYSPAR_MODELOUTPUT`. `params_analog.mat` is never read: it is bit-identical to the coretop rows
 of `params_standard.mat` (PORTING.md STO-01), so analogue mode indexes the standard store.
 
+## Compared with `brews/baysparpy`
+
+S. B. Malevich's [baysparpy](https://github.com/brews/baysparpy) is the existing Python port, and a
+careful one. `notebooks/compare_implementations.ipynb` runs both against the MATLAB reference on
+Jess Tierney's two demo examples and shows the answers side by side. In short:
+
+| | `brews/baysparpy` 0.0.3 | this port |
+|---|---|---|
+| **Agreement with MATLAB** | prior means exact, analogue cell set exact, medians inside sampling noise | the same, plus 18 tests that assert it against the reference executing |
+| **Which posterior draws** | the **first** `nens` of 20,000 | MATLAB's `round(linspace(1, 20000, n))`, spread across the chain |
+| **Percentiles** | `np.percentile(interpolation='nearest')` | MATLAB's `prctile` convention (Hazen), verified exactly against the reference's own ensemble |
+| **Default ensemble** | 5000 | 1000, MATLAB's |
+| **Speed** | ~1.9 s for a 193-point record at 1000 draws, 3.8 of 4 cores busy | ~0.013 s, one core — **~140×** |
+| **Analogue ensemble shape** | `(N, analogues, draws)` | the same |
+| **τ² pairing in analogue mode** | paired correctly (MATLAB does not) | the same, with `mode="matlab"` to reproduce the reference |
+| **NumPy ≥ 2.0** | `Prediction.percentile()` raises — `interpolation=` was removed in NumPy 2.0 | works |
+| **Provenance** | — | every translated line documented in `PORTING.md` under a stable ID, with a test per entry |
+
+The measured effect of those choices on Jess's standard-mode demo: draw selection moves the median
+0.08 °C on average, the percentile convention 0.004 °C, and reseeding the same implementation moves
+it 0.15 °C. The differences are smaller than the sampling noise. In *analogue* mode the draw choice
+does show as a systematic ~0.1 °C offset, because every analogue location reuses the same first
+1000 draws rather than averaging the difference out.
+
+The speed difference is structural, not tuning: the prior covariance is diagonal, so the posterior
+is too and the update is elementwise. `brews/baysparpy` builds an N × N matrix and takes a `solve`
+plus a Cholesky once per draw — and once per draw *per analogue location*. That is where both the
+wall-clock and the all-cores behaviour come from.
+
+```bash
+pip install -e ".[dev,compare]"      # `compare` pulls brews/baysparpy (and cartopy)
+jupyter lab notebooks/compare_implementations.ipynb
+```
+
+The notebook runs without it, and reports that it is missing rather than failing.
+
 ## Reviewing it
 
 `../docs/BAYSPARpy/PORTING.md` walks every line of the four MATLAB functions under a stable ID and
