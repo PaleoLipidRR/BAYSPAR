@@ -1,11 +1,8 @@
 # BAYSPARpy
 
-A Python recode of the MATLAB BAYSPAR package in the repository above — a Bayesian, spatially-varying
-calibration for the TEX<sub>86</sub> paleothermometer (Tierney & Tingley, 2014, 2015).
+A Python recode of the MATLAB BAYSPAR package in the repository above — a Bayesian, spatially-varying calibration for the TEX<sub>86</sub> paleothermometer (Tierney & Tingley, 2014, 2015).
 
-**Prototype.** It lives inside the MATLAB repository for now so its tests can read `ModelOutput/`
-directly and be compared against the reference line by line. It may move to its own repository
-once the parameter store is converted (SPEC §8). It is not yet released as a package.
+**Prototype.** It lives inside the MATLAB repository for now so its tests can read `ModelOutput/` directly and be compared against the reference line by line. It may move to its own repository once the parameter store is converted (SPEC §8). It is not yet released as a package.
 
 ```bash
 cd BAYSPARpy
@@ -13,8 +10,7 @@ pip install -e .              # or: PYTHONPATH=src python -m pytest
 python -m pytest              # 83 passing, 2 skipped (Phase 0 items)
 ```
 
-The import package is `baysparpy`, not `bayspar` — `brews/baysparpy` already imports as `bayspar`,
-and both need to coexist while this one is validated against it.
+The import package is `baysparpy`, not `bayspar` — `brews/baysparpy` already imports as `bayspar`, and both need to coexist while this one is validated against it.
 
 ## Using it
 
@@ -39,21 +35,15 @@ fwd = bp.tex_forward(lat=9.17, lon=-17.66, t=[25.0, 26.0], runname="SST", seed=0
 fwd.metadata["clipped_fraction"]   # share of the ensemble pinned at 0 or 1
 ```
 
-`predict_seatemp`, `predict_seatemp_analog` and `predict_tex` are the same three functions under
-`brews/baysparpy`'s names and argument order, so a notebook ports by changing the import. The
-default draw count is MATLAB's 1000, not that package's 5000.
+`predict_seatemp`, `predict_seatemp_analog` and `predict_tex` are the same three functions under `brews/baysparpy`'s names and argument order, so a notebook ports by changing the import. The default draw count is MATLAB's 1000, not that package's 5000.
 
 ## Where the data comes from
 
-The stores read the MATLAB `ModelOutput/` directory, found by walking up from the package or named
-by `BAYSPAR_MODELOUTPUT`. `params_analog.mat` is never read: it is bit-identical to the coretop rows
-of `params_standard.mat` (PORTING.md STO-01), so analogue mode indexes the standard store.
+The stores read the MATLAB `ModelOutput/` directory, found by walking up from the package or named by `BAYSPAR_MODELOUTPUT`. `params_analog.mat` is never read: it is bit-identical to the coretop rows of `params_standard.mat` (PORTING.md STO-01), so analogue mode indexes the standard store.
 
 ## Compared with `brews/baysparpy`
 
-S. B. Malevich's [baysparpy](https://github.com/brews/baysparpy) is the existing Python port, and a
-careful one. `notebooks/compare_implementations.ipynb` runs both against the MATLAB reference on
-Jess Tierney's two demo examples and shows the answers side by side. In short:
+S. B. Malevich's [baysparpy](https://github.com/brews/baysparpy) is the existing Python port, and a careful one. `notebooks/compare_implementations.ipynb` runs both against the MATLAB reference on Jess Tierney's two demo examples and shows the answers side by side. In short:
 
 | | `brews/baysparpy` 0.0.3 | this port |
 |---|---|---|
@@ -67,16 +57,9 @@ Jess Tierney's two demo examples and shows the answers side by side. In short:
 | **NumPy ≥ 2.0** | `Prediction.percentile()` raises — `interpolation=` was removed in NumPy 2.0 | works |
 | **Provenance** | — | every translated line documented in `PORTING.md` under a stable ID, with a test per entry |
 
-The measured effect of those choices on Jess's standard-mode demo: draw selection moves the median
-0.08 °C on average, the percentile convention 0.004 °C, and reseeding the same implementation moves
-it 0.15 °C. The differences are smaller than the sampling noise. In *analogue* mode the draw choice
-does show as a systematic ~0.1 °C offset, because every analogue location reuses the same first
-1000 draws rather than averaging the difference out.
+The measured effect of those choices on Jess's standard-mode demo: draw selection moves the median 0.08 °C on average, the percentile convention 0.004 °C, and reseeding the same implementation moves it 0.15 °C. The differences are smaller than the sampling noise. In *analogue* mode the draw choice does show as a systematic ~0.1 °C offset, because every analogue location reuses the same first 1000 draws rather than averaging the difference out.
 
-The speed difference is structural, not tuning: the prior covariance is diagonal, so the posterior
-is too and the update is elementwise. `brews/baysparpy` builds an N × N matrix and takes a `solve`
-plus a Cholesky once per draw — and once per draw *per analogue location*. That is where both the
-wall-clock and the all-cores behaviour come from.
+The speed difference is structural, not tuning: the prior covariance is diagonal, so the posterior is too and the update is elementwise. `brews/baysparpy` builds an N × N matrix and takes a `solve` plus a Cholesky once per draw — and once per draw *per analogue location*. That is where both the wall-clock and the all-cores behaviour come from.
 
 ```bash
 uv sync                              # .venv with the package, dev tools and brews/baysparpy
@@ -94,15 +77,8 @@ The notebook runs without brews/baysparpy, and reports that it is missing rather
 
 ## Reviewing it
 
-`../docs/BAYSPARpy/PORTING.md` walks every line of the four MATLAB functions under a stable ID and
-says what this code does instead. Ten entries change behaviour and sit in a register at the top;
-`tests/test_port.py` has one test per ID and `tests/test_porting_doc.py` fails the build if an entry
-loses its test or a difference escapes the register.
+`../docs/BAYSPARpy/PORTING.md` walks every line of the four MATLAB functions under a stable ID and says what this code does instead. Ten entries change behaviour and sit in a register at the top; `tests/test_port.py` has one test per ID and `tests/test_porting_doc.py` fails the build if an entry loses its test or a difference escapes the register.
 
-The port is checked against the original MATLAB code itself, run under GNU Octave 8.4: 18 tests
-(`tests/test_golden.py`, `tests/test_vs_original.py`) compare it with reference output saved in
-`../docs/BAYSPARpy/audit/`. Re-running that reference under MATLAB proper is optional.
+The port is checked against the original MATLAB code itself, run under GNU Octave 8.4: 18 tests (`tests/test_golden.py`, `tests/test_vs_original.py`) compare it with reference output saved in `../docs/BAYSPARpy/audit/`. Re-running that reference under MATLAB proper is optional.
 
-Not yet written: plotting, the demo notebooks, the CmdStan and Stan layers (SPEC §9–§10), and a
-test that compares against `brews/baysparpy` directly (the comparison notebook above does this by
-hand).
+Not yet written: plotting, the demo notebooks, the CmdStan and Stan layers (SPEC §9–§10), and a test that compares against `brews/baysparpy` directly (the comparison notebook above does this by hand).

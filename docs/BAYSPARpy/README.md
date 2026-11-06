@@ -1,7 +1,6 @@
 # BAYSPARpy planning materials
 
-Design and review material for a Python recode of this MATLAB package, to live in a new repository
-(`PaleoLipidRR/BAYSPARpy`). Nothing here changes the MATLAB code.
+Design and review material for a Python recode of this MATLAB package, to live in a new repository (`PaleoLipidRR/BAYSPARpy`). Nothing here changes the MATLAB code.
 
 | File | What it is | Who reads it |
 |---|---|---|
@@ -22,8 +21,6 @@ python docs/BAYSPARpy/audit/reference_trace.py > docs/BAYSPARpy/audit/reference_
 
 ## How to review
 
-Start with the register at the top of [`PORTING.md`](PORTING.md) — nine rows, each naming who
-decides. Everything else in that document is either an exact translation or a proven equivalence,
-and is there so the port can be checked line by line without reading Python.
+Start with the register at the top of [`PORTING.md`](PORTING.md) — nine rows, each naming who decides. Everything else in that document is either an exact translation or a proven equivalence, and is there so the port can be checked line by line without reading Python.
 
 Decisions still needing Jess (or Brewster, on the PyPI name) are collected in SPEC §14.

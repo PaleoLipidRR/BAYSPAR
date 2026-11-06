@@ -1,8 +1,6 @@
 # Comparison dossier
 
-An HTML page that sets the original MATLAB functions, `brews/baysparpy` and BAYSPARpy side by side:
-the math each function computes, every step of the code in three columns with real line numbers,
-and the results of running all three on the demo inputs.
+An HTML page that sets the original MATLAB functions, `brews/baysparpy` and BAYSPARpy side by side: the math each function computes, every step of the code in three columns with real line numbers, and the results of running all three on the demo inputs.
 
 ```bash
 cd BAYSPARpy
@@ -17,8 +15,4 @@ uv run python ../docs/BAYSPARpy/audit/dossier/build.py    # writes dossier.html
 | `template.html` | The page. Each `<!--stage ... -->` block names the file and line range to show for each implementation, its status, and a caption. |
 | `build.py` | Pulls those line ranges from the source files, highlights them with Pygments, and inlines `data.json`. Fails if a range runs past the end of a file, so an edited source cannot silently shift the excerpts. |
 
-`dossier.html` is committed so the page can be read without building it (download it and open it
-in a browser); rebuild and recommit it after changing a ported function or the reference data.
-`data.json` is an intermediate and is not committed (its numbers are inlined into the page). Line ranges in
-`template.html` are tied to the current sources; after editing a ported function, check its stages
-still point at the right lines.
+`dossier.html` is committed so the page can be read without building it (download it and open it in a browser); rebuild and recommit it after changing a ported function or the reference data. `data.json` is an intermediate and is not committed (its numbers are inlined into the page). Line ranges in `template.html` are tied to the current sources; after editing a ported function, check its stages still point at the right lines.

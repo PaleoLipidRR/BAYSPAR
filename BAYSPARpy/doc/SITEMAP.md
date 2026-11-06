@@ -1,10 +1,8 @@
 # BAYSPARpy site map
 
-How the modules in `src/baysparpy/` depend on each other, which MATLAB file each
-one ports, what data they read, and which tests exercise them.
+How the modules in `src/baysparpy/` depend on each other, which MATLAB file each one ports, what data they read, and which tests exercise them.
 
-The line-by-line translation record lives in `docs/BAYSPARpy/PORTING.md` at the
-root of the BAYSPAR repository. IDs such as `BT-06` in the docstrings refer to it.
+The line-by-line translation record lives in `docs/BAYSPARpy/PORTING.md` at the root of the BAYSPAR repository. IDs such as `BT-06` in the docstrings refer to it.
 
 ## Modules at a glance
 
@@ -24,8 +22,7 @@ root of the BAYSPAR repository. IDs such as `BT-06` in the docstrings refer to i
 
 ## Import graph
 
-An arrow `A --> B` means *A imports from B*. Modules higher up depend on those
-below; nothing points upward, so there are no import cycles.
+An arrow `A --> B` means *A imports from B*. Modules higher up depend on those below; nothing points upward, so there are no import cycles.
 
 ```mermaid
 flowchart TD
@@ -92,8 +89,7 @@ flowchart TD
     utils --> errors
 ```
 
-Two links cross between the three ported functions, and both reuse a shared step
-instead of copying it:
+Two links cross between the three ported functions, and both reuse a shared step instead of copying it:
 
 - `bayspar_tex_analog` calls `bayspar_tex.solve_posterior` for the conjugate normal update.
 - `tex_forward` calls `bayspar_tex_analog.find_analogs` for its analogue cell search.
@@ -147,9 +143,7 @@ flowchart LR
 
 ## Data files read by `stores.py`
 
-`find_modeloutput()` uses `$BAYSPAR_MODELOUTPUT` if it is set. Otherwise it
-walks up from the package to the first `ModelOutput/` that contains
-`obsSST.mat`. Every file is loaded once and cached (`lru_cache`).
+`find_modeloutput()` uses `$BAYSPAR_MODELOUTPUT` if it is set. Otherwise it walks up from the package to the first `ModelOutput/` that contains `obsSST.mat`. Every file is loaded once and cached (`lru_cache`).
 
 ```mermaid
 flowchart LR
@@ -163,8 +157,7 @@ flowchart LR
     DI --> GC["get_coretops → CoreTops"]
 ```
 
-`params_analog.mat` is never read. It is bit-identical to a subset of rows in
-`params_standard.mat`, and `analog_cell_rows` selects those rows (PORTING.md STO-01).
+`params_analog.mat` is never read. It is bit-identical to a subset of rows in `params_standard.mat`, and `analog_cell_rows` selects those rows (PORTING.md STO-01).
 
 ## Tests
 
@@ -197,7 +190,4 @@ The `audit/` paths are under `docs/BAYSPARpy/` in the BAYSPAR repository.
 
 ## Notebook
 
-`notebooks/compare_implementations.ipynb` imports `baysparpy as ours` and,
-when it is installed, `bayspar as brews`. It runs both on Jess Tierney's two
-demos and compares them against the MATLAB results in
-`audit/original_matlab.mat`.
+`notebooks/compare_implementations.ipynb` imports `baysparpy as ours` and, when it is installed, `bayspar as brews`. It runs both on Jess Tierney's two demos and compares them against the MATLAB results in `audit/original_matlab.mat`.
