@@ -4,14 +4,13 @@ A Python recode of the MATLAB BAYSPAR package in the repository above — a Baye
 calibration for the TEX<sub>86</sub> paleothermometer (Tierney & Tingley, 2014, 2015).
 
 **Prototype.** It lives inside the MATLAB repository for now so its tests can read `ModelOutput/`
-directly and be compared against the reference line by line. It will move to
-`PaleoLipidRR/BAYSPARpy` once the parameter store is converted (SPEC §8) and the MATLAB golden files
-exist. Nothing is published to PyPI pending agreement with J. Tierney and S. B. Malevich.
+directly and be compared against the reference line by line. It may move to its own repository
+once the parameter store is converted (SPEC §8). It is not yet released as a package.
 
 ```bash
 cd BAYSPARpy
 pip install -e .              # or: PYTHONPATH=src python -m pytest
-python -m pytest              # 65 passing, 2 skipped (Phase 0 items)
+python -m pytest              # 83 passing, 2 skipped (Phase 0 items)
 ```
 
 The import package is `baysparpy`, not `bayspar` — `brews/baysparpy` already imports as `bayspar`,
@@ -100,7 +99,10 @@ says what this code does instead. Ten entries change behaviour and sit in a regi
 `tests/test_port.py` has one test per ID and `tests/test_porting_doc.py` fails the build if an entry
 loses its test or a difference escapes the register.
 
-Not yet written: plotting, the demo notebooks, the CmdStan and Stan layers (SPEC §9–§10), and the
-three test files that need a MATLAB session or `brews/baysparpy` installed. Until those golden tests
-exist, this port is checked for internal consistency and against traced intermediates — not yet
-against MATLAB itself.
+The port is checked against the original MATLAB code itself, run under GNU Octave 8.4: 18 tests
+(`tests/test_golden.py`, `tests/test_vs_original.py`) compare it with reference output saved in
+`../docs/BAYSPARpy/audit/`. Re-running that reference under MATLAB proper is optional.
+
+Not yet written: plotting, the demo notebooks, the CmdStan and Stan layers (SPEC §9–§10), and a
+test that compares against `brews/baysparpy` directly (the comparison notebook above does this by
+hand).
